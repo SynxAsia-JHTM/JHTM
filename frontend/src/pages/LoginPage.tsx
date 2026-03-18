@@ -4,6 +4,7 @@ import { Mail, Lock, AlertCircle } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { getApiBaseUrl } from '@/lib/config';
+import BackToHomeLink from '@/components/navigation/BackToHomeLink';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -82,6 +83,7 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
+      <BackToHomeLink variant="floating" />
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-zinc-100">
         <div className="p-8">
           <div className="text-center mb-10">

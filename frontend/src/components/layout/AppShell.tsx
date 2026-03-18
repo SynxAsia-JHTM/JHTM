@@ -12,6 +12,7 @@ import {
   User,
   Users,
 } from 'lucide-react';
+import BackToHomeLink from '../navigation/BackToHomeLink';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
@@ -68,6 +69,7 @@ export default function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
           <div className="flex flex-1 items-center gap-4">
+            <BackToHomeLink />
             <div className="relative hidden w-full max-w-md md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
@@ -113,4 +115,3 @@ export default function AppShell() {
     </div>
   );
 }
-
