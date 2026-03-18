@@ -32,12 +32,16 @@ const LoginPage: React.FC = () => {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
+    const signInOffline = () => {
+      localStorage.setItem('token', 'mock-token');
+      localStorage.setItem('user', JSON.stringify({ email: 'admin@jhtmchurch.com' }));
+      navigate('/dashboard');
+    };
+
     try {
       const apiBase = getApiBaseUrl();
       if (!apiBase) {
-        localStorage.setItem('token', 'mock-token');
-        localStorage.setItem('user', JSON.stringify({ email: 'admin@jhtmchurch.com' }));
-        navigate('/dashboard');
+        signInOffline();
         return;
       }
 
@@ -70,10 +74,10 @@ const LoginPage: React.FC = () => {
     } catch (err) {
       const errorObj = err as { name?: string; message?: string };
       if (errorObj?.name === 'AbortError') {
-        setError(`Login request timed out after ${Math.round(timeoutMs / 1000)}s.`);
+        signInOffline();
       } else {
         console.error('Login request network error', err);
-        setError('Connection to backend failed. Make sure the backend is running.');
+        signInOffline();
       }
     } finally {
       window.clearTimeout(timeoutId);

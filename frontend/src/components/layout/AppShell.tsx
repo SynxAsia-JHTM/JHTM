@@ -1,30 +1,61 @@
-import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import {
   Bell,
-  Calendar,
-  Church,
-  ClipboardCheck,
-  Info,
-  LayoutDashboard,
   LogOut,
   Search,
   User,
-  Users,
 } from 'lucide-react';
 import BackToHomeLink from '../navigation/BackToHomeLink';
-
-const navItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { label: 'Members', icon: Users, path: '/members' },
-  { label: 'Events', icon: Calendar, path: '/events' },
-  { label: 'Attendance', icon: ClipboardCheck, path: '/attendance' },
-  { label: 'About', icon: Info, path: '/about' },
-];
+import Sidebar from './Sidebar';
 
 export default function AppShell() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  const sidebarToggleButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const sidebarStorageKey = 'jhtm.sidebarCollapsed.v1';
+  const hasPreferenceRef = useRef(false);
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem(sidebarStorageKey);
+      if (raw === 'true') {
+        hasPreferenceRef.current = true;
+        return true;
+      }
+      if (raw === 'false') {
+        hasPreferenceRef.current = true;
+        return false;
+      }
+    } catch {
+      return true;
+    }
+
+    if (typeof window === 'undefined') return true;
+    return !window.matchMedia('(min-width: 1024px)').matches;
+  });
+
+  useEffect(() => {
+    if (hasPreferenceRef.current) return;
+    const media = window.matchMedia('(min-width: 1024px)');
+    const handler = () => setSidebarCollapsed(!media.matches);
+    handler();
+
+    media.addEventListener('change', handler);
+    return () => media.removeEventListener('change', handler);
+  }, []);
+
+  const setCollapsed = (next: boolean) => {
+    setSidebarCollapsed(next);
+    hasPreferenceRef.current = true;
+    try {
+      localStorage.setItem(sidebarStorageKey, String(next));
+    } catch {
+      return;
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -33,40 +64,32 @@ export default function AppShell() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <aside className="hidden lg:flex w-64 flex-col border-r border-slate-200 bg-white">
-        <div className="flex items-center gap-3 border-b border-slate-100 p-6">
-          <div className="rounded-lg bg-blue-600 p-2">
-            <Church className="text-white" size={20} />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-lg font-bold text-slate-900">JHTM Church</p>
-            <p className="truncate text-xs font-semibold uppercase tracking-wider text-slate-500">Management System</p>
-          </div>
-        </div>
+    <div className="relative flex min-h-screen bg-slate-50">
+      {!sidebarCollapsed ? (
+        <button
+          type="button"
+          aria-label="Close sidebar"
+          onClick={() => {
+            setCollapsed(true);
+            window.setTimeout(() => sidebarToggleButtonRef.current?.focus(), 0);
+          }}
+          className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+        />
+      ) : null}
 
-        <nav className="flex-1 space-y-1 p-4">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                [
-                  'flex items-center gap-3 rounded-lg px-4 py-2.5 font-medium transition-colors duration-200',
-                  isActive
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
-                ].join(' ')
-              }
-            >
-              <item.icon size={20} />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setCollapsed(!sidebarCollapsed)}
+        toggleButtonRef={sidebarToggleButtonRef}
+        onNavigate={() => {
+          if (typeof window === 'undefined') return;
+          if (window.matchMedia('(min-width: 1024px)').matches) return;
+          setCollapsed(true);
+          window.setTimeout(() => sidebarToggleButtonRef.current?.focus(), 0);
+        }}
+      />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col pl-16 lg:pl-0">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
           <div className="flex flex-1 items-center gap-4">
             <BackToHomeLink />
