@@ -100,7 +100,10 @@ export default function Modal({
   if (!open || !portalTarget) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" role="presentation">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      role="presentation"
+    >
       <button
         type="button"
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
@@ -145,4 +148,3 @@ export default function Modal({
     portalTarget
   );
 }
-

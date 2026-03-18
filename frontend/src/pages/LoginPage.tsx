@@ -91,19 +91,13 @@ const LoginPage: React.FC = () => {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-zinc-100">
         <div className="p-8">
           <div className="text-center mb-10">
-            <h1 className="text-2xl font-bold text-zinc-900 mb-2">
-              JHTM Church Management System
-            </h1>
-            <p className="text-zinc-500 text-sm">
-              Sign in to manage your church operations
-            </p>
+            <h1 className="text-2xl font-bold text-zinc-900 mb-2">JHTM Church Management System</h1>
+            <p className="text-zinc-500 text-sm">Sign in to manage your church operations</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700 block">
-                Email Address
-              </label>
+              <label className="text-sm font-medium text-zinc-700 block">Email Address</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
                   <Mail size={18} />
@@ -120,9 +114,7 @@ const LoginPage: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700 block">
-                Password
-              </label>
+              <label className="text-sm font-medium text-zinc-700 block">Password</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
                   <Lock size={18} />
@@ -149,15 +141,15 @@ const LoginPage: React.FC = () => {
               type="submit"
               disabled={isLoading}
               className={cn(
-                "w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2",
-                isLoading && "animate-pulse"
+                'w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2',
+                isLoading && 'animate-pulse'
               )}
             >
               {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
         </div>
-        
+
         <div className="bg-zinc-50 p-4 text-center border-t border-zinc-100">
           <p className="text-xs text-zinc-400">
             &copy; {new Date().getFullYear()} JHTM Church Management System. All rights reserved.

@@ -1,14 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import {
-  Calendar,
-  Church,
-  ClipboardCheck,
-  Info,
-  LayoutDashboard,
-  Menu,
-  Users,
-} from 'lucide-react';
+import { Calendar, Church, ClipboardCheck, Info, LayoutDashboard, Menu, Users } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
@@ -46,7 +38,12 @@ export default function Sidebar({
       aria-label="Primary"
     >
       <div className="flex h-full flex-col">
-        <div className={cn('flex items-center gap-3 border-b border-slate-100 p-4', collapsed && 'justify-center px-2')}>
+        <div
+          className={cn(
+            'flex items-center gap-3 border-b border-slate-100 p-4',
+            collapsed && 'justify-center px-2'
+          )}
+        >
           <button
             ref={toggleButtonRef}
             type="button"
@@ -67,7 +64,9 @@ export default function Sidebar({
             </div>
             <div className="min-w-0">
               <p className="truncate text-lg font-bold text-slate-900">JHTM Church</p>
-              <p className="truncate text-xs font-semibold uppercase tracking-wider text-slate-500">Management System</p>
+              <p className="truncate text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Management System
+              </p>
             </div>
           </div>
         </div>
@@ -96,7 +95,12 @@ export default function Sidebar({
           ))}
         </nav>
 
-        <div className={cn('border-t border-slate-100 p-3 text-xs font-semibold text-slate-400', collapsed && 'px-2 text-center')}>
+        <div
+          className={cn(
+            'border-t border-slate-100 p-3 text-xs font-semibold text-slate-400',
+            collapsed && 'px-2 text-center'
+          )}
+        >
           <span className={cn(collapsed && 'sr-only')}>JHTM</span>
           <span aria-hidden="true" className={cn(!collapsed && 'hidden')}>
             •

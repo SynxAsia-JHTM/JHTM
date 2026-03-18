@@ -1,10 +1,11 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { ArrowRight, CalendarDays, Clock, MapPin, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEventsStore } from '@/stores/eventsStore';
 
 type SectionKey = 'home' | 'about' | 'ministries' | 'events' | 'contact';
 
-type EventItem = {
+type PublicEventItem = {
   id: string;
   name: string;
   date: string;
@@ -65,50 +66,46 @@ export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
 
-  const upcomingEvents: EventItem[] = [
-    {
-      id: 'e1',
-      name: 'Sunday Worship Service',
-      date: 'Sunday, March 22, 2026',
-      time: '10:00 AM',
-      location: 'Main Sanctuary',
-    },
-    {
-      id: 'e2',
-      name: 'Mid-week Prayer Meeting',
-      date: 'Wednesday, March 25, 2026',
-      time: '7:30 PM',
-      location: 'Chapel',
-    },
-    {
-      id: 'e3',
-      name: 'Youth Outreach Night',
-      date: 'Friday, March 27, 2026',
-      time: '6:00 PM',
-      location: 'Community Hall',
-    },
-    {
-      id: 'e4',
-      name: 'Family Fellowship Lunch',
-      date: 'Sunday, March 29, 2026',
-      time: '12:15 PM',
-      location: 'Fellowship Center',
-    },
-    {
-      id: 'e5',
-      name: 'Worship Team Rehearsal',
-      date: 'Thursday, April 2, 2026',
-      time: '7:00 PM',
-      location: 'Music Room',
-    },
-    {
-      id: 'e6',
-      name: 'Community Service Day',
-      date: 'Saturday, April 4, 2026',
-      time: '9:00 AM',
-      location: 'Meet at Church Lobby',
-    },
-  ];
+  const adminEvents = useEventsStore((s) => s.events);
+
+  const upcomingEvents: PublicEventItem[] = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const formatDate = (iso: string) => {
+      const parsed = new Date(`${iso}T00:00:00`);
+      return new Intl.DateTimeFormat(undefined, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }).format(parsed);
+    };
+    const formatTime = (hhmm: string) => {
+      const [h, m] = hhmm.split(':');
+      const d = new Date();
+      d.setHours(Number(h), Number(m || 0), 0, 0);
+      return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(d);
+    };
+
+    return adminEvents
+      .filter((e) => e.status !== 'Cancelled')
+      .filter((e) => {
+        const eventDay = new Date(`${e.date}T00:00:00`);
+        return eventDay.getTime() >= startOfToday.getTime();
+      })
+      .sort((a, b) => {
+        const aKey = `${a.date}T${a.time || '00:00'}:00`;
+        const bKey = `${b.date}T${b.time || '00:00'}:00`;
+        return Date.parse(aKey) - Date.parse(bKey);
+      })
+      .map((e) => ({
+        id: e.id,
+        name: e.name,
+        date: formatDate(e.date),
+        time: formatTime(e.time),
+        location: e.location,
+      }));
+  }, [adminEvents]);
 
   const ministries: MinistryItem[] = [
     { id: 'youth', name: 'Youth', imageUrl: ministryImages.youth },
@@ -135,7 +132,9 @@ export default function Home() {
             <div className="h-9 w-9 rounded-full bg-gradient-to-br from-sky-500 to-emerald-500" />
             <div className="text-left">
               <p className="text-sm font-extrabold tracking-tight text-slate-900">JHTM Church</p>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Welcome Home</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Welcome Home
+              </p>
             </div>
           </button>
 
@@ -147,7 +146,11 @@ export default function Home() {
               <button type="button" className="hover:text-sky-700" onClick={() => onNav('about')}>
                 About
               </button>
-              <button type="button" className="hover:text-sky-700" onClick={() => onNav('ministries')}>
+              <button
+                type="button"
+                className="hover:text-sky-700"
+                onClick={() => onNav('ministries')}
+              >
                 Ministries
               </button>
               <button type="button" className="hover:text-sky-700" onClick={() => onNav('events')}>
@@ -201,19 +204,39 @@ export default function Home() {
                     <X size={18} />
                   </button>
                 </div>
-                <button type="button" className="rounded-xl bg-slate-50 px-4 py-3 text-left font-semibold" onClick={() => onNav('home')}>
+                <button
+                  type="button"
+                  className="rounded-xl bg-slate-50 px-4 py-3 text-left font-semibold"
+                  onClick={() => onNav('home')}
+                >
                   Home
                 </button>
-                <button type="button" className="rounded-xl bg-slate-50 px-4 py-3 text-left font-semibold" onClick={() => onNav('about')}>
+                <button
+                  type="button"
+                  className="rounded-xl bg-slate-50 px-4 py-3 text-left font-semibold"
+                  onClick={() => onNav('about')}
+                >
                   About
                 </button>
-                <button type="button" className="rounded-xl bg-slate-50 px-4 py-3 text-left font-semibold" onClick={() => onNav('ministries')}>
+                <button
+                  type="button"
+                  className="rounded-xl bg-slate-50 px-4 py-3 text-left font-semibold"
+                  onClick={() => onNav('ministries')}
+                >
                   Ministries
                 </button>
-                <button type="button" className="rounded-xl bg-slate-50 px-4 py-3 text-left font-semibold" onClick={() => onNav('events')}>
+                <button
+                  type="button"
+                  className="rounded-xl bg-slate-50 px-4 py-3 text-left font-semibold"
+                  onClick={() => onNav('events')}
+                >
                   Events
                 </button>
-                <button type="button" className="rounded-xl bg-slate-50 px-4 py-3 text-left font-semibold" onClick={() => onNav('contact')}>
+                <button
+                  type="button"
+                  className="rounded-xl bg-slate-50 px-4 py-3 text-left font-semibold"
+                  onClick={() => onNav('contact')}
+                >
                   Contact
                 </button>
               </div>
@@ -237,7 +260,9 @@ export default function Home() {
             <h1 className="mt-6 text-4xl font-black tracking-tight text-white sm:text-5xl">
               Welcome to JHTM Church
             </h1>
-            <p className="mt-4 text-lg font-semibold text-white/90">Growing in Faith, Serving in Love</p>
+            <p className="mt-4 text-lg font-semibold text-white/90">
+              Growing in Faith, Serving in Love
+            </p>
 
             <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
@@ -259,11 +284,15 @@ export default function Home() {
 
             <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/20">
-                <p className="text-xs font-bold uppercase tracking-wider text-white/80">Sunday Service</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-white/80">
+                  Sunday Service
+                </p>
                 <p className="mt-2 text-lg font-extrabold text-white">10:00 AM</p>
               </div>
               <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/20">
-                <p className="text-xs font-bold uppercase tracking-wider text-white/80">Mid-week Prayer</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-white/80">
+                  Mid-week Prayer
+                </p>
                 <p className="mt-2 text-lg font-extrabold text-white">Wednesdays 7:30 PM</p>
               </div>
               <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/20">
@@ -277,26 +306,35 @@ export default function Home() {
 
       <section ref={refs.about} className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
-          <h2 className="text-3xl font-black tracking-tight text-slate-900">A Church You Can Call Home</h2>
+          <h2 className="text-3xl font-black tracking-tight text-slate-900">
+            A Church You Can Call Home
+          </h2>
           <p className="mt-3 text-slate-600">
-            We exist to help people meet Jesus, grow in discipleship, and live out their faith in daily life. Our community is
-            welcoming, multi-generational, and focused on serving with joy.
+            We exist to help people meet Jesus, grow in discipleship, and live out their faith in
+            daily life. Our community is welcoming, multi-generational, and focused on serving with
+            joy.
           </p>
         </div>
 
         <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Mission</p>
-            <p className="mt-3 text-lg font-extrabold text-slate-900">Make disciples who love God and people</p>
+            <p className="mt-3 text-lg font-extrabold text-slate-900">
+              Make disciples who love God and people
+            </p>
             <p className="mt-3 text-slate-600">
-              We gather for worship, grow through Scripture, and go into our community with compassion and practical help.
+              We gather for worship, grow through Scripture, and go into our community with
+              compassion and practical help.
             </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-wider text-sky-700">Vision</p>
-            <p className="mt-3 text-lg font-extrabold text-slate-900">A thriving, serving church for every generation</p>
+            <p className="mt-3 text-lg font-extrabold text-slate-900">
+              A thriving, serving church for every generation
+            </p>
             <p className="mt-3 text-slate-600">
-              We envision a church family rooted in faith, united in love, and equipped to bring hope to our city and beyond.
+              We envision a church family rooted in faith, united in love, and equipped to bring
+              hope to our city and beyond.
             </p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -308,11 +346,15 @@ export default function Home() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-2 h-1.5 w-1.5 rounded-full bg-sky-500" />
-                <span className="font-semibold">Authentic community and intentional discipleship</span>
+                <span className="font-semibold">
+                  Authentic community and intentional discipleship
+                </span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#d2b36b]" />
-                <span className="font-semibold">Generosity, service, and mission to our neighbors</span>
+                <span className="font-semibold">
+                  Generosity, service, and mission to our neighbors
+                </span>
               </li>
             </ul>
           </div>
@@ -324,7 +366,9 @@ export default function Home() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-3xl font-black tracking-tight text-slate-900">Upcoming Events</h2>
-              <p className="mt-2 text-slate-600">Stay connected with what’s happening at JHTM Church.</p>
+              <p className="mt-2 text-slate-600">
+                Stay connected with what’s happening at JHTM Church.
+              </p>
             </div>
             <button
               type="button"
@@ -368,7 +412,9 @@ export default function Home() {
 
               <div className="min-w-[240px] snap-start rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5">
                 <p className="text-sm font-extrabold text-slate-900">More gatherings</p>
-                <p className="mt-2 text-sm text-slate-600">Explore all upcoming church activities and community outreach.</p>
+                <p className="mt-2 text-sm text-slate-600">
+                  Explore all upcoming church activities and community outreach.
+                </p>
                 <button
                   type="button"
                   onClick={() => setShowAllEvents(true)}
@@ -390,10 +436,18 @@ export default function Home() {
                 <table className="w-full text-left">
                   <thead>
                     <tr className="bg-slate-50/60">
-                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Event</th>
-                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Date</th>
-                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Time</th>
-                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Location</th>
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Event
+                      </th>
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Date
+                      </th>
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Time
+                      </th>
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Location
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -423,7 +477,10 @@ export default function Home() {
 
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {ministries.map((m) => (
-            <div key={m.id} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div
+              key={m.id}
+              className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+            >
               <div className="relative h-40 overflow-hidden">
                 <img
                   src={m.imageUrl}
@@ -453,7 +510,9 @@ export default function Home() {
               </p>
             </div>
             <div>
-              <p className="text-sm font-extrabold uppercase tracking-wider text-white/80">Contact</p>
+              <p className="text-sm font-extrabold uppercase tracking-wider text-white/80">
+                Contact
+              </p>
               <div className="mt-3 space-y-2 text-sm text-white/75">
                 <p>123 Faith Avenue, City Center</p>
                 <p>+1 (555) 010-2026</p>
@@ -461,15 +520,32 @@ export default function Home() {
               </div>
             </div>
             <div>
-              <p className="text-sm font-extrabold uppercase tracking-wider text-white/80">Social</p>
+              <p className="text-sm font-extrabold uppercase tracking-wider text-white/80">
+                Social
+              </p>
               <div className="mt-3 space-y-2 text-sm">
-                <a className="block text-white/75 hover:text-white" href="https://facebook.com" target="_blank" rel="noreferrer">
+                <a
+                  className="block text-white/75 hover:text-white"
+                  href="https://facebook.com"
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Facebook
                 </a>
-                <a className="block text-white/75 hover:text-white" href="https://instagram.com" target="_blank" rel="noreferrer">
+                <a
+                  className="block text-white/75 hover:text-white"
+                  href="https://instagram.com"
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Instagram
                 </a>
-                <a className="block text-white/75 hover:text-white" href="https://youtube.com" target="_blank" rel="noreferrer">
+                <a
+                  className="block text-white/75 hover:text-white"
+                  href="https://youtube.com"
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   YouTube
                 </a>
               </div>
@@ -484,4 +560,3 @@ export default function Home() {
     </div>
   );
 }
-

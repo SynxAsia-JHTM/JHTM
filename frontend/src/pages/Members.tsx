@@ -20,7 +20,15 @@ type Member = {
   status: MemberStatus;
 };
 
-const ministries = ['Worship', 'Youth', 'Media', 'Children', 'Ushering', 'Hospitality', 'Outreach'] as const;
+const ministries = [
+  'Worship',
+  'Youth',
+  'Media',
+  'Children',
+  'Ushering',
+  'Hospitality',
+  'Outreach',
+] as const;
 
 const defaultMembers: Member[] = [
   {
@@ -243,7 +251,10 @@ export default function Members() {
             <p className="mt-1 text-sm text-slate-500">Search and sort member records</p>
           </div>
           <div className="relative w-full sm:max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              size={18}
+            />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -273,7 +284,12 @@ export default function Members() {
                 <SortableTh label="Category" sortKey="category" activeKey={sortKey} onSort={onSort}>
                   {sortKey === 'category' ? <SortIcon size={14} aria-hidden="true" /> : null}
                 </SortableTh>
-                <SortableTh label="Birthdate" sortKey="birthdate" activeKey={sortKey} onSort={onSort}>
+                <SortableTh
+                  label="Birthdate"
+                  sortKey="birthdate"
+                  activeKey={sortKey}
+                  onSort={onSort}
+                >
                   {sortKey === 'birthdate' ? <SortIcon size={14} aria-hidden="true" /> : null}
                 </SortableTh>
                 <SortableTh label="Ministry" sortKey="ministry" activeKey={sortKey} onSort={onSort}>
@@ -319,7 +335,12 @@ export default function Members() {
                       <span className="text-sm text-slate-600">{m.ministry}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', statusPill(m.status))}>
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                          statusPill(m.status)
+                        )}
+                      >
                         {m.status}
                       </span>
                     </td>
@@ -555,7 +576,10 @@ function AddMemberModal({
     >
       <form className="space-y-5" onSubmit={onSubmit}>
         {error ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
+          <div
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
+            role="alert"
+          >
             {error}
           </div>
         ) : null}
@@ -597,7 +621,9 @@ function AddMemberModal({
           <InputField label="Gender" required>
             <select
               value={form.gender}
-              onChange={(e) => setForm((prev) => ({ ...prev, gender: e.target.value as MemberGender }))}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, gender: e.target.value as MemberGender }))
+              }
               className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
               required
             >
@@ -610,7 +636,9 @@ function AddMemberModal({
           <InputField label="Category" required>
             <select
               value={form.category}
-              onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value as MemberCategory }))}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, category: e.target.value as MemberCategory }))
+              }
               className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
               required
             >
@@ -651,7 +679,9 @@ function AddMemberModal({
           <InputField label="Status" required>
             <select
               value={form.status}
-              onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as MemberStatus }))}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, status: e.target.value as MemberStatus }))
+              }
               className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
               required
             >
@@ -777,7 +807,10 @@ function EditMemberModal({
     >
       <form className="space-y-5" onSubmit={onSubmit}>
         {error ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
+          <div
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
+            role="alert"
+          >
             {error}
           </div>
         ) : null}
@@ -819,7 +852,9 @@ function EditMemberModal({
           <InputField label="Gender" required>
             <select
               value={form.gender}
-              onChange={(e) => setForm((prev) => ({ ...prev, gender: e.target.value as MemberGender }))}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, gender: e.target.value as MemberGender }))
+              }
               className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
               required
             >
@@ -832,7 +867,9 @@ function EditMemberModal({
           <InputField label="Category" required>
             <select
               value={form.category}
-              onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value as MemberCategory }))}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, category: e.target.value as MemberCategory }))
+              }
               className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
               required
             >
@@ -873,7 +910,9 @@ function EditMemberModal({
           <InputField label="Status" required>
             <select
               value={form.status}
-              onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as MemberStatus }))}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, status: e.target.value as MemberStatus }))
+              }
               className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
               required
             >

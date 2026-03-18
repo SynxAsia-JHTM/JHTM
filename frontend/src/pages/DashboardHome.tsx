@@ -3,8 +3,20 @@ import { Calendar, Church, Users } from 'lucide-react';
 
 const stats = [
   { label: 'Total Members', value: '1,248', icon: Users, color: 'text-blue-700', bg: 'bg-blue-50' },
-  { label: 'Active Ministries', value: '18', icon: Church, color: 'text-emerald-700', bg: 'bg-emerald-50' },
-  { label: 'Upcoming Events', value: '5', icon: Calendar, color: 'text-violet-700', bg: 'bg-violet-50' },
+  {
+    label: 'Active Ministries',
+    value: '18',
+    icon: Church,
+    color: 'text-emerald-700',
+    bg: 'bg-emerald-50',
+  },
+  {
+    label: 'Upcoming Events',
+    value: '5',
+    icon: Calendar,
+    color: 'text-violet-700',
+    bg: 'bg-violet-50',
+  },
 ];
 
 const recentMembers = [
@@ -16,9 +28,19 @@ const recentMembers = [
 ];
 
 const upcomingEvents = [
-  { id: 1, name: 'Sunday Worship Service', date: 'Mar 22, 2026 • 10:00 AM', location: 'Main Sanctuary' },
+  {
+    id: 1,
+    name: 'Sunday Worship Service',
+    date: 'Mar 22, 2026 • 10:00 AM',
+    location: 'Main Sanctuary',
+  },
   { id: 2, name: 'Mid-week Prayer Meeting', date: 'Mar 25, 2026 • 7:30 PM', location: 'Chapel' },
-  { id: 3, name: 'Youth Outreach Night', date: 'Mar 27, 2026 • 6:00 PM', location: 'Community Hall' },
+  {
+    id: 3,
+    name: 'Youth Outreach Night',
+    date: 'Mar 27, 2026 • 6:00 PM',
+    location: 'Community Hall',
+  },
 ];
 
 export default function DashboardHome() {
@@ -33,7 +55,10 @@ export default function DashboardHome() {
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div
+            key={item.label}
+            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          >
             <div className="flex items-center justify-between">
               <div className={`${item.bg} rounded-xl p-2.5`}>
                 <item.icon className={item.color} size={22} />
@@ -54,9 +79,15 @@ export default function DashboardHome() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/60">
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Name</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Ministry</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Status</th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Name
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Ministry
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -72,7 +103,9 @@ export default function DashboardHome() {
                       <span
                         className={
                           'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ' +
-                          (m.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700')
+                          (m.status === 'Active'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-amber-100 text-amber-700')
                         }
                       >
                         {m.status}
@@ -103,4 +136,3 @@ export default function DashboardHome() {
     </div>
   );
 }
-

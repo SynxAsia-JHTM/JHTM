@@ -38,10 +38,18 @@ export default function Attendance() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/60">
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Service</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Date</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Total</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">First Timers</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Service
+                </th>
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Date
+                </th>
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Total
+                </th>
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  First Timers
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -68,4 +76,3 @@ export default function Attendance() {
     </div>
   );
 }
-

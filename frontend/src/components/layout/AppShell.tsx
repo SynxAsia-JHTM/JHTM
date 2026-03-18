@@ -1,11 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import {
-  Bell,
-  LogOut,
-  Search,
-  User,
-} from 'lucide-react';
+import { Bell, LogOut, Search, User } from 'lucide-react';
 import BackToHomeLink from '../navigation/BackToHomeLink';
 import Sidebar from './Sidebar';
 
@@ -94,7 +89,10 @@ export default function AppShell() {
           <div className="flex flex-1 items-center gap-4">
             <BackToHomeLink />
             <div className="relative hidden w-full max-w-md md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                size={18}
+              />
               <input
                 type="text"
                 className="w-full rounded-full border border-transparent bg-slate-100 py-2 pl-10 pr-4 text-sm text-slate-900 outline-none transition-all duration-200 focus:border-blue-200 focus:bg-white focus:ring-2 focus:ring-blue-500"
@@ -104,15 +102,23 @@ export default function AppShell() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="relative text-slate-500 hover:text-slate-900" type="button" aria-label="Notifications">
+            <button
+              className="relative text-slate-500 hover:text-slate-900"
+              type="button"
+              aria-label="Notifications"
+            >
               <Bell size={20} />
               <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full border-2 border-white bg-red-500" />
             </button>
 
             <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold text-slate-900">{user.email?.split('@')[0] || 'Admin'}</p>
-                <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Administrator</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {user.email?.split('@')[0] || 'Admin'}
+                </p>
+                <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Administrator
+                </p>
               </div>
               <div className="rounded-full bg-blue-100 p-2 text-blue-700">
                 <User size={20} />

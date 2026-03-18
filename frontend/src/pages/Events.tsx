@@ -2,98 +2,84 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 
 import Modal from '@/components/ui/Modal';
+import { useToast } from '@/components/ui/useToast';
 import { cn } from '@/lib/utils';
-
-type EventStatus = 'Scheduled' | 'Planned' | 'Completed' | 'Cancelled';
-
-type EventItem = {
-  id: string;
-  name: string;
-  date: string;
-  time: string;
-  location: string;
-  status: EventStatus;
-};
-
-const defaultEvents: EventItem[] = [
-  {
-    id: 'e1',
-    name: 'Sunday Worship Service',
-    date: '2026-03-22',
-    time: '10:00',
-    location: 'Main Sanctuary',
-    status: 'Scheduled',
-  },
-  {
-    id: 'e2',
-    name: 'Mid-week Prayer Meeting',
-    date: '2026-03-25',
-    time: '19:30',
-    location: 'Chapel',
-    status: 'Scheduled',
-  },
-  {
-    id: 'e3',
-    name: 'Youth Outreach Night',
-    date: '2026-03-27',
-    time: '18:00',
-    location: 'Community Hall',
-    status: 'Planned',
-  },
-  {
-    id: 'e4',
-    name: 'Leadership Training',
-    date: '2026-04-02',
-    time: '17:30',
-    location: 'Conference Room',
-    status: 'Planned',
-  },
-  {
-    id: 'e5',
-    name: 'Choir Rehearsal',
-    date: '2026-04-04',
-    time: '19:00',
-    location: 'Music Room',
-    status: 'Scheduled',
-  },
-];
+import {
+  createEventId,
+  type EventItem,
+  type EventStatus,
+  useEventsStore,
+} from '@/stores/eventsStore';
 
 type SortDirection = 'asc' | 'desc';
 type SortKey = keyof Pick<EventItem, 'name' | 'date' | 'time' | 'location' | 'status'>;
 
-const eventStorageKey = 'jhtm.events.v1';
+type EventForm = Omit<EventItem, 'id'>;
 
-function loadEvents(): EventItem[] {
-  try {
-    const raw = localStorage.getItem(eventStorageKey);
-    if (!raw) return defaultEvents;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return defaultEvents;
-    return parsed as EventItem[];
-  } catch {
-    return defaultEvents;
-  }
-}
+const venues = [
+  'Main Sanctuary',
+  'Chapel',
+  'Community Hall',
+  'Conference Room',
+  'Music Room',
+  'Fellowship Center',
+  'Main Church',
+];
 
-function saveEvents(events: EventItem[]) {
-  try {
-    localStorage.setItem(eventStorageKey, JSON.stringify(events));
-  } catch {
-    return;
-  }
-}
+const speakers = ['Pastor John', 'Pastor Grace', 'Guest Speaker', 'Youth Leader', 'Worship Team'];
+const categories = ['Service', 'Prayer', 'Training', 'Outreach', 'Youth', 'Music', 'Fellowship'];
+
+const addDraftKey = 'jhtm.events.addDraft.v1';
 
 function compareStrings(a: string, b: string) {
   return a.localeCompare(b, undefined, { sensitivity: 'base' });
 }
 
-function createEventId() {
-  const maybeCrypto = globalThis.crypto as unknown as { randomUUID?: () => string } | undefined;
-  return maybeCrypto?.randomUUID?.() ?? `e_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+function roundToNextQuarterHour(now: Date) {
+  const ms = now.getTime();
+  const minutes = now.getMinutes();
+  const remainder = minutes % 15;
+  const addMinutes = remainder === 0 ? 15 : 15 - remainder;
+  const next = new Date(ms + addMinutes * 60_000);
+  const hh = String(next.getHours()).padStart(2, '0');
+  const mm = String(next.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+function todayIsoDate() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function validate(form: EventForm) {
+  const errors: Partial<Record<keyof EventForm, string>> = {};
+
+  if (!form.name.trim()) errors.name = 'Event name is required.';
+  if (!form.date.trim()) errors.date = 'Date is required.';
+  if (!form.time.trim()) errors.time = 'Time is required.';
+  if (!form.location.trim()) errors.location = 'Venue is required.';
+  if (!form.status.trim()) errors.status = 'Status is required.';
+
+  if (form.date && Number.isNaN(Date.parse(form.date))) errors.date = 'Use a valid date.';
+  if (form.time && !/^\d{2}:\d{2}$/.test(form.time)) errors.time = 'Use a valid time.';
+
+  return errors;
+}
+
+function isEmptyErrors(errors: Record<string, string | undefined>) {
+  return Object.values(errors).every((v) => !v);
 }
 
 export default function Events() {
-  const [events, setEvents] = useState<EventItem[]>(() => loadEvents());
+  const toast = useToast();
+  const events = useEventsStore((s) => s.events);
+  const addEvent = useEventsStore((s) => s.addEvent);
+  const updateEvent = useEventsStore((s) => s.updateEvent);
+  const deleteEvent = useEventsStore((s) => s.deleteEvent);
+
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -104,26 +90,6 @@ export default function Events() {
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
 
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
-
-  const persistEvents = (next: EventItem[]) => {
-    setEvents(next);
-    saveEvents(next);
-  };
-
-  const onEventAdded = (event: Omit<EventItem, 'id'>) => {
-    const next = [{ id: createEventId(), ...event }, ...events];
-    persistEvents(next);
-  };
-
-  const onEventEdited = (id: string, updates: Omit<EventItem, 'id'>) => {
-    const next = events.map((e) => (e.id === id ? { ...e, ...updates } : e));
-    persistEvents(next);
-  };
-
-  const onEventDeleted = (id: string) => {
-    const next = events.filter((e) => e.id !== id);
-    persistEvents(next);
-  };
 
   const editingEvent = useMemo(() => {
     if (!editEventId) return null;
@@ -139,7 +105,17 @@ export default function Events() {
     const normalizedQuery = query.trim().toLowerCase();
     const filtered = normalizedQuery
       ? events.filter((e) => {
-          const haystack = [e.name, e.date, e.time, e.location, e.status].join(' ').toLowerCase();
+          const haystack = [
+            e.name,
+            e.date,
+            e.time,
+            e.location,
+            e.status,
+            e.category ?? '',
+            e.speaker ?? '',
+          ]
+            .join(' ')
+            .toLowerCase();
           return haystack.includes(normalizedQuery);
         })
       : events;
@@ -197,7 +173,10 @@ export default function Events() {
             <p className="mt-1 text-sm text-slate-500">Search and sort events</p>
           </div>
           <div className="relative w-full sm:max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              size={18}
+            />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -208,6 +187,7 @@ export default function Events() {
             />
           </div>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
@@ -255,7 +235,12 @@ export default function Events() {
                       <span className="text-sm text-slate-600">{e.location}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', statusPill(e.status))}>
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                          statusPill(e.status)
+                        )}
+                      >
                         {e.status}
                       </span>
                     </td>
@@ -298,9 +283,9 @@ export default function Events() {
             window.setTimeout(() => addButtonRef.current?.focus(), 0);
           }
         }}
-        onSave={(payload) => {
-          onEventAdded(payload);
-          setIsAddOpen(false);
+        onCreate={async (payload) => {
+          addEvent({ id: createEventId(), ...payload });
+          toast.success('Event created', 'Your event is now visible on the homepage.');
         }}
       />
 
@@ -311,11 +296,10 @@ export default function Events() {
           if (!open) setEditEventId(null);
         }}
         event={editingEvent}
-        onSave={(updates) => {
+        onSave={async (payload) => {
           if (!editEventId) return;
-          onEventEdited(editEventId, updates);
-          setIsEditOpen(false);
-          setEditEventId(null);
+          updateEvent(editEventId, payload);
+          toast.success('Event updated');
         }}
       />
 
@@ -324,13 +308,12 @@ export default function Events() {
         onOpenChange={(open) => {
           if (!open) setDeleteEventId(null);
         }}
-        title="Delete event"
-        description="This action cannot be undone."
         itemLabel={deletingEvent?.name ?? 'this event'}
         onConfirm={() => {
           if (!deleteEventId) return;
-          onEventDeleted(deleteEventId);
+          deleteEvent(deleteEventId);
           setDeleteEventId(null);
+          toast.success('Event deleted');
         }}
       />
     </div>
@@ -376,22 +359,68 @@ function SortableTh({
   );
 }
 
-function InputField({
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <p className="text-sm font-semibold text-red-700">{message}</p>;
+}
+
+function InputLabel({ label, required }: { label: string; required?: boolean }) {
+  return (
+    <span className="block text-sm font-semibold text-slate-700">
+      {label}
+      {required ? <span className="text-red-600"> *</span> : null}
+    </span>
+  );
+}
+
+function DatalistInput({
+  id,
   label,
   required,
-  children,
+  value,
+  onChange,
+  options,
+  placeholder,
+  error,
+  onBlur,
 }: {
+  id: string;
   label: string;
   required?: boolean;
-  children: React.ReactNode;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  placeholder?: string;
+  error?: string;
+  onBlur?: () => void;
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-semibold text-slate-700">
-        {label}
-        {required ? <span className="text-red-600"> *</span> : null}
+      <label className="space-y-2">
+        <InputLabel label={label} required={required} />
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          list={id}
+          className={cn(
+            'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
+            error
+              ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
+              : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+          )}
+          type="text"
+          placeholder={placeholder}
+          required={required}
+          autoComplete="off"
+        />
       </label>
-      {children}
+      <datalist id={id}>
+        {options.map((o) => (
+          <option key={o} value={o} />
+        ))}
+      </datalist>
+      <FieldError message={error} />
     </div>
   );
 }
@@ -399,141 +428,225 @@ function InputField({
 function AddEventModal({
   open,
   onOpenChange,
-  onSave,
+  onCreate,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (event: Omit<EventItem, 'id'>) => void;
+  onCreate: (event: EventForm) => Promise<void> | void;
 }) {
   const nameRef = useRef<HTMLInputElement | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
-  const [form, setForm] = useState<Omit<EventItem, 'id'>>({
-    name: '',
-    date: '',
-    time: '',
-    location: '',
-    status: 'Scheduled',
-  });
+  const smartDefaults = useMemo<EventForm>(
+    () => ({
+      name: '',
+      date: todayIsoDate(),
+      time: roundToNextQuarterHour(new Date()),
+      location: venues[0] ?? 'Main Sanctuary',
+      status: 'Scheduled',
+      category: categories[0] ?? 'Service',
+      speaker: speakers[0] ?? 'Pastor John',
+    }),
+    []
+  );
 
-  const reset = () => {
-    setError(null);
-    setForm({ name: '', date: '', time: '', location: '', status: 'Scheduled' });
-  };
+  const [form, setForm] = useState<EventForm>(smartDefaults);
+
+  useEffect(() => {
+    if (!open) return;
+    setTouched({});
+    try {
+      const raw = localStorage.getItem(addDraftKey);
+      if (!raw) {
+        setForm(smartDefaults);
+        return;
+      }
+      const parsed = JSON.parse(raw) as Partial<EventForm>;
+      setForm({ ...smartDefaults, ...parsed });
+    } catch {
+      setForm(smartDefaults);
+    }
+  }, [open, smartDefaults]);
+
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setInterval(() => {
+      try {
+        localStorage.setItem(addDraftKey, JSON.stringify(form));
+      } catch {
+        return;
+      }
+    }, 30_000);
+    return () => window.clearInterval(id);
+  }, [form, open]);
+
+  const errors = useMemo(() => validate(form), [form]);
+  const canSubmit = isEmptyErrors(errors) && !isSubmitting;
 
   const close = () => {
     onOpenChange(false);
-    window.setTimeout(() => reset(), 0);
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setTouched({
+      name: true,
+      date: true,
+      time: true,
+      location: true,
+      status: true,
+      category: true,
+      speaker: true,
+    });
+    if (!isEmptyErrors(errors)) return;
+    setIsSubmitting(true);
 
-    if (!form.name.trim()) {
-      setError('Event name is required.');
-      nameRef.current?.focus();
-      return;
-    }
-    if (!form.date.trim()) {
-      setError('Date is required.');
-      return;
-    }
-    if (!form.time.trim()) {
-      setError('Time is required.');
-      return;
-    }
-    if (!form.location.trim()) {
-      setError('Location is required.');
-      return;
-    }
-
-    onSave({
+    await new Promise((r) => window.setTimeout(r, 350));
+    await onCreate({
       ...form,
       name: form.name.trim(),
       location: form.location.trim(),
+      category: form.category?.trim() || undefined,
+      speaker: form.speaker?.trim() || undefined,
     });
-    reset();
+
+    try {
+      localStorage.removeItem(addDraftKey);
+    } catch {
+      return;
+    }
+
+    setIsSubmitting(false);
+    close();
   };
 
   return (
     <Modal
       open={open}
-      onOpenChange={(next) => {
-        if (!next) close();
-        else onOpenChange(true);
-      }}
+      onOpenChange={onOpenChange}
       title="Add Event"
       description="Create a new event."
       initialFocusRef={nameRef}
       className="max-w-3xl"
     >
-      <form className="space-y-5" onSubmit={onSubmit}>
-        {error ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
-            {error}
-          </div>
-        ) : null}
-
+      <form className="space-y-5" onSubmit={submit}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <InputField label="Event Name" required>
-            <input
-              ref={nameRef}
-              value={form.name}
-              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
-              type="text"
-              required
-              autoComplete="off"
-            />
-          </InputField>
-
-          <InputField label="Status" required>
-            <select
-              value={form.status}
-              onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as EventStatus }))}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
-              required
-            >
-              <option value="Scheduled">Scheduled</option>
-              <option value="Planned">Planned</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </InputField>
-
-          <InputField label="Date" required>
-            <input
-              value={form.date}
-              onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
-              type="date"
-              required
-            />
-          </InputField>
-
-          <InputField label="Time" required>
-            <input
-              value={form.time}
-              onChange={(e) => setForm((prev) => ({ ...prev, time: e.target.value }))}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
-              type="time"
-              required
-            />
-          </InputField>
-
-          <div className="sm:col-span-2">
-            <InputField label="Location" required>
+          <div className="space-y-2">
+            <label className="space-y-2">
+              <InputLabel label="Event Name" required />
               <input
-                value={form.location}
-                onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+                ref={nameRef}
+                value={form.name}
+                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+                className={cn(
+                  'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
+                  touched.name && errors.name
+                    ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
+                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                )}
                 type="text"
                 required
                 autoComplete="off"
               />
-            </InputField>
+            </label>
+            <FieldError message={touched.name ? errors.name : undefined} />
           </div>
+
+          <div className="space-y-2">
+            <label className="space-y-2">
+              <InputLabel label="Status" required />
+              <select
+                value={form.status}
+                onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as EventStatus }))}
+                onBlur={() => setTouched((t) => ({ ...t, status: true }))}
+                className={cn(
+                  'h-11 w-full rounded-xl border bg-white px-3 text-sm text-slate-900 outline-none transition focus:ring-2',
+                  touched.status && errors.status
+                    ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
+                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                )}
+                required
+              >
+                <option value="Scheduled">Scheduled</option>
+                <option value="Planned">Planned</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </label>
+            <FieldError message={touched.status ? errors.status : undefined} />
+          </div>
+
+          <div className="space-y-2">
+            <label className="space-y-2">
+              <InputLabel label="Date" required />
+              <input
+                value={form.date}
+                onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
+                onBlur={() => setTouched((t) => ({ ...t, date: true }))}
+                className={cn(
+                  'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
+                  touched.date && errors.date
+                    ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
+                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                )}
+                type="date"
+                required
+              />
+            </label>
+            <FieldError message={touched.date ? errors.date : undefined} />
+          </div>
+
+          <div className="space-y-2">
+            <label className="space-y-2">
+              <InputLabel label="Time" required />
+              <input
+                value={form.time}
+                onChange={(e) => setForm((p) => ({ ...p, time: e.target.value }))}
+                onBlur={() => setTouched((t) => ({ ...t, time: true }))}
+                className={cn(
+                  'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
+                  touched.time && errors.time
+                    ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
+                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                )}
+                type="time"
+                required
+              />
+            </label>
+            <FieldError message={touched.time ? errors.time : undefined} />
+          </div>
+
+          <DatalistInput
+            id="venue-options"
+            label="Venue"
+            required
+            value={form.location}
+            onChange={(value) => setForm((p) => ({ ...p, location: value }))}
+            options={venues}
+            placeholder="Select venue"
+            error={touched.location ? errors.location : undefined}
+            onBlur={() => setTouched((t) => ({ ...t, location: true }))}
+          />
+
+          <DatalistInput
+            id="category-options"
+            label="Category"
+            value={form.category ?? ''}
+            onChange={(value) => setForm((p) => ({ ...p, category: value }))}
+            options={categories}
+            placeholder="Select category"
+          />
+
+          <DatalistInput
+            id="speaker-options"
+            label="Speaker"
+            value={form.speaker ?? ''}
+            onChange={(value) => setForm((p) => ({ ...p, speaker: value }))}
+            options={speakers}
+            placeholder="Select speaker"
+          />
         </div>
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -546,9 +659,23 @@ function AddEventModal({
           </button>
           <button
             type="submit"
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            disabled={!canSubmit}
+            className={cn(
+              'inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-blue-600/60',
+              isSubmitting && 'animate-pulse'
+            )}
           >
-            Save
+            {isSubmitting ? (
+              <span className="inline-flex items-center gap-2">
+                <span
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+                  aria-hidden="true"
+                />
+                Saving
+              </span>
+            ) : (
+              'Save'
+            )}
           </button>
         </div>
       </form>
@@ -564,144 +691,191 @@ function EditEventModal({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (event: Omit<EventItem, 'id'>) => void;
+  onSave: (event: Partial<EventItem>) => Promise<void> | void;
   event: EventItem | null;
 }) {
   const nameRef = useRef<HTMLInputElement | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<Omit<EventItem, 'id'>>({
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [form, setForm] = useState<EventForm>({
     name: '',
-    date: '',
-    time: '',
-    location: '',
+    date: todayIsoDate(),
+    time: roundToNextQuarterHour(new Date()),
+    location: venues[0] ?? 'Main Sanctuary',
     status: 'Scheduled',
+    category: categories[0] ?? 'Service',
+    speaker: speakers[0] ?? 'Pastor John',
   });
 
   useEffect(() => {
     if (!open) return;
+    setTouched({});
     if (!event) return;
-    setError(null);
     setForm({
       name: event.name,
       date: event.date,
       time: event.time,
       location: event.location,
       status: event.status,
+      category: event.category ?? '',
+      speaker: event.speaker ?? '',
     });
   }, [event, open]);
 
+  const errors = useMemo(() => validate(form), [form]);
+  const canSubmit = isEmptyErrors(errors) && !isSubmitting;
+
   const close = () => {
-    setError(null);
     onOpenChange(false);
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setTouched({ name: true, date: true, time: true, location: true, status: true });
+    if (!isEmptyErrors(errors)) return;
+    setIsSubmitting(true);
+    await new Promise((r) => window.setTimeout(r, 250));
 
-    if (!form.name.trim()) {
-      setError('Event name is required.');
-      nameRef.current?.focus();
-      return;
-    }
-    if (!form.date.trim()) {
-      setError('Date is required.');
-      return;
-    }
-    if (!form.time.trim()) {
-      setError('Time is required.');
-      return;
-    }
-    if (!form.location.trim()) {
-      setError('Location is required.');
-      return;
-    }
-
-    onSave({
-      ...form,
+    await onSave({
       name: form.name.trim(),
+      date: form.date,
+      time: form.time,
       location: form.location.trim(),
+      status: form.status,
+      category: form.category?.trim() || undefined,
+      speaker: form.speaker?.trim() || undefined,
     });
+
+    setIsSubmitting(false);
+    close();
   };
 
   return (
     <Modal
       open={open}
-      onOpenChange={(next) => {
-        if (!next) close();
-        else onOpenChange(true);
-      }}
+      onOpenChange={onOpenChange}
       title="Edit Event"
       description="Update the event details."
       initialFocusRef={nameRef}
       className="max-w-3xl"
     >
-      <form className="space-y-5" onSubmit={onSubmit}>
-        {error ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
-            {error}
-          </div>
-        ) : null}
-
+      <form className="space-y-5" onSubmit={submit}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <InputField label="Event Name" required>
-            <input
-              ref={nameRef}
-              value={form.name}
-              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
-              type="text"
-              required
-              autoComplete="off"
-            />
-          </InputField>
-
-          <InputField label="Status" required>
-            <select
-              value={form.status}
-              onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as EventStatus }))}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
-              required
-            >
-              <option value="Scheduled">Scheduled</option>
-              <option value="Planned">Planned</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </InputField>
-
-          <InputField label="Date" required>
-            <input
-              value={form.date}
-              onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
-              type="date"
-              required
-            />
-          </InputField>
-
-          <InputField label="Time" required>
-            <input
-              value={form.time}
-              onChange={(e) => setForm((prev) => ({ ...prev, time: e.target.value }))}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
-              type="time"
-              required
-            />
-          </InputField>
-
-          <div className="sm:col-span-2">
-            <InputField label="Location" required>
+          <div className="space-y-2">
+            <label className="space-y-2">
+              <InputLabel label="Event Name" required />
               <input
-                value={form.location}
-                onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+                ref={nameRef}
+                value={form.name}
+                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+                className={cn(
+                  'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
+                  touched.name && errors.name
+                    ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
+                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                )}
                 type="text"
                 required
                 autoComplete="off"
               />
-            </InputField>
+            </label>
+            <FieldError message={touched.name ? errors.name : undefined} />
           </div>
+
+          <div className="space-y-2">
+            <label className="space-y-2">
+              <InputLabel label="Status" required />
+              <select
+                value={form.status}
+                onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as EventStatus }))}
+                onBlur={() => setTouched((t) => ({ ...t, status: true }))}
+                className={cn(
+                  'h-11 w-full rounded-xl border bg-white px-3 text-sm text-slate-900 outline-none transition focus:ring-2',
+                  touched.status && errors.status
+                    ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
+                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                )}
+                required
+              >
+                <option value="Scheduled">Scheduled</option>
+                <option value="Planned">Planned</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </label>
+            <FieldError message={touched.status ? errors.status : undefined} />
+          </div>
+
+          <div className="space-y-2">
+            <label className="space-y-2">
+              <InputLabel label="Date" required />
+              <input
+                value={form.date}
+                onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
+                onBlur={() => setTouched((t) => ({ ...t, date: true }))}
+                className={cn(
+                  'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
+                  touched.date && errors.date
+                    ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
+                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                )}
+                type="date"
+                required
+              />
+            </label>
+            <FieldError message={touched.date ? errors.date : undefined} />
+          </div>
+
+          <div className="space-y-2">
+            <label className="space-y-2">
+              <InputLabel label="Time" required />
+              <input
+                value={form.time}
+                onChange={(e) => setForm((p) => ({ ...p, time: e.target.value }))}
+                onBlur={() => setTouched((t) => ({ ...t, time: true }))}
+                className={cn(
+                  'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
+                  touched.time && errors.time
+                    ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
+                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                )}
+                type="time"
+                required
+              />
+            </label>
+            <FieldError message={touched.time ? errors.time : undefined} />
+          </div>
+
+          <DatalistInput
+            id="venue-options-edit"
+            label="Venue"
+            required
+            value={form.location}
+            onChange={(value) => setForm((p) => ({ ...p, location: value }))}
+            options={venues}
+            placeholder="Select venue"
+            error={touched.location ? errors.location : undefined}
+            onBlur={() => setTouched((t) => ({ ...t, location: true }))}
+          />
+
+          <DatalistInput
+            id="category-options-edit"
+            label="Category"
+            value={form.category ?? ''}
+            onChange={(value) => setForm((p) => ({ ...p, category: value }))}
+            options={categories}
+            placeholder="Select category"
+          />
+
+          <DatalistInput
+            id="speaker-options-edit"
+            label="Speaker"
+            value={form.speaker ?? ''}
+            onChange={(value) => setForm((p) => ({ ...p, speaker: value }))}
+            options={speakers}
+            placeholder="Select speaker"
+          />
         </div>
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -714,9 +888,23 @@ function EditEventModal({
           </button>
           <button
             type="submit"
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            disabled={!canSubmit}
+            className={cn(
+              'inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-blue-600/60',
+              isSubmitting && 'animate-pulse'
+            )}
           >
-            Save
+            {isSubmitting ? (
+              <span className="inline-flex items-center gap-2">
+                <span
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+                  aria-hidden="true"
+                />
+                Saving
+              </span>
+            ) : (
+              'Save'
+            )}
           </button>
         </div>
       </form>
@@ -728,19 +916,21 @@ function ConfirmDeleteModal({
   open,
   onOpenChange,
   onConfirm,
-  title,
-  description,
   itemLabel,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
-  title: string;
-  description: string;
   itemLabel: string;
 }) {
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={title} description={description} className="max-w-lg">
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Delete event"
+      description="This action cannot be undone."
+      className="max-w-lg"
+    >
       <div className="space-y-5">
         <p className="text-sm text-slate-700">
           Are you sure you want to delete <span className="font-semibold">{itemLabel}</span>?
