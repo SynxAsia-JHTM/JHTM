@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, Plus, Search } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowDown, ArrowUp, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 
 import Modal from '@/components/ui/Modal';
 import { cn } from '@/lib/utils';
@@ -134,6 +134,9 @@ export default function Members() {
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editMemberId, setEditMemberId] = useState<string | null>(null);
+  const [deleteMemberId, setDeleteMemberId] = useState<string | null>(null);
 
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -185,11 +188,35 @@ export default function Members() {
 
   const SortIcon = sortDirection === 'asc' ? ArrowUp : ArrowDown;
 
-  const onMemberAdded = (member: Omit<Member, 'id'>) => {
-    const next = [{ id: createMemberId(), ...member }, ...members];
+  const persistMembers = (next: Member[]) => {
     setMembers(next);
     saveMembers(next);
   };
+
+  const onMemberAdded = (member: Omit<Member, 'id'>) => {
+    const next = [{ id: createMemberId(), ...member }, ...members];
+    persistMembers(next);
+  };
+
+  const onMemberEdited = (id: string, updates: Omit<Member, 'id'>) => {
+    const next = members.map((m) => (m.id === id ? { ...m, ...updates } : m));
+    persistMembers(next);
+  };
+
+  const onMemberDeleted = (id: string) => {
+    const next = members.filter((m) => m.id !== id);
+    persistMembers(next);
+  };
+
+  const editingMember = useMemo(() => {
+    if (!editMemberId) return null;
+    return members.find((m) => m.id === editMemberId) ?? null;
+  }, [editMemberId, members]);
+
+  const deletingMember = useMemo(() => {
+    if (!deleteMemberId) return null;
+    return members.find((m) => m.id === deleteMemberId) ?? null;
+  }, [deleteMemberId, members]);
 
   return (
     <div className="space-y-6">
@@ -255,12 +282,15 @@ export default function Members() {
                 <SortableTh label="Status" sortKey="status" activeKey={sortKey} onSort={onSort}>
                   {sortKey === 'status' ? <SortIcon size={14} aria-hidden="true" /> : null}
                 </SortableTh>
+                <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredAndSorted.length === 0 ? (
                 <tr>
-                  <td className="px-6 py-10 text-center text-sm text-slate-500" colSpan={8}>
+                  <td className="px-6 py-10 text-center text-sm text-slate-500" colSpan={9}>
                     No members found.
                   </td>
                 </tr>
@@ -293,6 +323,29 @@ export default function Members() {
                         {m.status}
                       </span>
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditMemberId(m.id);
+                            setIsEditOpen(true);
+                          }}
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                          aria-label={`Edit ${m.name}`}
+                        >
+                          <Pencil size={18} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteMemberId(m.id)}
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                          aria-label={`Delete ${m.name}`}
+                        >
+                          <Trash2 size={18} aria-hidden="true" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -313,6 +366,37 @@ export default function Members() {
         onSave={(payload) => {
           onMemberAdded(payload);
           setIsAddOpen(false);
+        }}
+      />
+
+      <EditMemberModal
+        open={isEditOpen}
+        onOpenChange={(open) => {
+          setIsEditOpen(open);
+          if (!open) {
+            setEditMemberId(null);
+          }
+        }}
+        member={editingMember}
+        ministries={ministries as unknown as string[]}
+        onSave={(updates) => {
+          if (!editMemberId) return;
+          onMemberEdited(editMemberId, updates);
+          setIsEditOpen(false);
+          setEditMemberId(null);
+        }}
+      />
+
+      <ConfirmDeleteModal
+        open={Boolean(deleteMemberId)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteMemberId(null);
+        }}
+        memberName={deletingMember?.name ?? 'this member'}
+        onConfirm={() => {
+          if (!deleteMemberId) return;
+          onMemberDeleted(deleteMemberId);
+          setDeleteMemberId(null);
         }}
       />
     </div>
@@ -594,6 +678,272 @@ function AddMemberModal({
           </button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+function EditMemberModal({
+  open,
+  onOpenChange,
+  onSave,
+  ministries,
+  member,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (member: Omit<Member, 'id'>) => void;
+  ministries: string[];
+  member: Member | null;
+}) {
+  const nameRef = useRef<HTMLInputElement | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const [form, setForm] = useState<Omit<Member, 'id'>>({
+    name: '',
+    email: '',
+    phone: '',
+    gender: 'Male',
+    category: 'Member',
+    birthdate: '',
+    ministry: ministries[0] ?? 'Worship',
+    status: 'Active',
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    if (!member) return;
+    setError(null);
+    setForm({
+      name: member.name,
+      email: member.email,
+      phone: member.phone,
+      gender: member.gender,
+      category: member.category,
+      birthdate: member.birthdate,
+      ministry: member.ministry,
+      status: member.status,
+    });
+  }, [member, open]);
+
+  const close = () => {
+    setError(null);
+    onOpenChange(false);
+  };
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!form.name.trim()) {
+      setError('Name is required.');
+      nameRef.current?.focus();
+      return;
+    }
+
+    if (!form.email.trim()) {
+      setError('Email is required.');
+      return;
+    }
+
+    if (!form.phone.trim()) {
+      setError('Phone is required.');
+      return;
+    }
+
+    if (!form.birthdate.trim()) {
+      setError('Birthdate is required.');
+      return;
+    }
+
+    onSave({
+      ...form,
+      name: form.name.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim(),
+    });
+  };
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) close();
+        else onOpenChange(true);
+      }}
+      title="Edit Member"
+      description="Update the member record."
+      initialFocusRef={nameRef}
+      className="max-w-3xl"
+    >
+      <form className="space-y-5" onSubmit={onSubmit}>
+        {error ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <InputField label="Name" required>
+            <input
+              ref={nameRef}
+              value={form.name}
+              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+              type="text"
+              required
+              autoComplete="name"
+            />
+          </InputField>
+          <InputField label="Email" required>
+            <input
+              value={form.email}
+              onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+              type="email"
+              required
+              autoComplete="email"
+            />
+          </InputField>
+
+          <InputField label="Phone" required>
+            <input
+              value={form.phone}
+              onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+              type="tel"
+              required
+              autoComplete="tel"
+            />
+          </InputField>
+
+          <InputField label="Gender" required>
+            <select
+              value={form.gender}
+              onChange={(e) => setForm((prev) => ({ ...prev, gender: e.target.value as MemberGender }))}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+              required
+            >
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </InputField>
+
+          <InputField label="Category" required>
+            <select
+              value={form.category}
+              onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value as MemberCategory }))}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+              required
+            >
+              <option value="Youth">Youth</option>
+              <option value="Pastor">Pastor</option>
+              <option value="Leader">Leader</option>
+              <option value="Member">Member</option>
+              <option value="Guest">Guest</option>
+            </select>
+          </InputField>
+
+          <InputField label="Birthdate" required>
+            <input
+              value={form.birthdate}
+              onChange={(e) => setForm((prev) => ({ ...prev, birthdate: e.target.value }))}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+              type="date"
+              required
+              autoComplete="bday"
+            />
+          </InputField>
+
+          <InputField label="Ministry" required>
+            <select
+              value={form.ministry}
+              onChange={(e) => setForm((prev) => ({ ...prev, ministry: e.target.value }))}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+              required
+            >
+              {ministries.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </InputField>
+
+          <InputField label="Status" required>
+            <select
+              value={form.status}
+              onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as MemberStatus }))}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+              required
+            >
+              <option value="Active">Active</option>
+              <option value="Pending">Pending</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </InputField>
+        </div>
+
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={close}
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          >
+            Save
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function ConfirmDeleteModal({
+  open,
+  onOpenChange,
+  onConfirm,
+  memberName,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  memberName: string;
+}) {
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Delete member"
+      description="This action cannot be undone."
+      className="max-w-lg"
+    >
+      <div className="space-y-5">
+        <p className="text-sm text-slate-700">
+          Are you sure you want to delete <span className="font-semibold">{memberName}</span>?
+        </p>
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
     </Modal>
   );
 }
