@@ -1,108 +1,62 @@
-import React, { useState } from 'react';
-import { Heart, Plus, Send, Clock, CheckCircle, MessageCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { EyeOff, Eye, Users, Heart } from 'lucide-react';
 
-type PrayerRequest = {
-  id: string;
-  request: string;
-  date: string;
-  status: 'Pending' | 'In Progress' | 'Answered';
-  isAnonymous: boolean;
-  prayers: number;
-};
-
-const initialPrayers: PrayerRequest[] = [
-  {
-    id: '1',
-    request:
-      'Please pray for my job interview next week. I have been seeking a new opportunity for months.',
-    date: 'March 18, 2026',
-    status: 'Pending',
-    isAnonymous: false,
-    prayers: 5,
-  },
-  {
-    id: '2',
-    request:
-      'Pray for my family during this difficult time. My parents are going through health challenges.',
-    date: 'March 10, 2026',
-    status: 'In Progress',
-    isAnonymous: false,
-    prayers: 12,
-  },
-  {
-    id: '3',
-    request: "Thank you for prayers for my daughter's recovery. She is doing much better now!",
-    date: 'Feb 28, 2026',
-    status: 'Answered',
-    isAnonymous: false,
-    prayers: 24,
-  },
-];
+import Modal from '@/components/ui/Modal';
+import { useToast } from '@/components/ui/useToast';
+import { cn } from '@/lib/utils';
+import {
+  type PrayerRequest,
+  type PrayerVisibility,
+  usePrayerRequestsStore,
+} from '@/stores/prayerRequestsStore';
 
 export default function PortalPrayers() {
-  const [prayers, setPrayers] = useState<PrayerRequest[]>(initialPrayers);
-  const [showForm, setShowForm] = useState(false);
-  const [newRequest, setNewRequest] = useState('');
+  const toast = useToast();
+  const loadMyRequests = usePrayerRequestsStore((s) => s.loadMyRequests);
+  const submitMyRequest = usePrayerRequestsStore((s) => s.submitMyRequest);
+  const myRequests = usePrayerRequestsStore((s) => s.myRequests);
+
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [visibility, setVisibility] = useState<PrayerVisibility>('private');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRequest.trim()) return;
+  const messageRef = useRef<HTMLTextAreaElement | null>(null);
 
-    setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  useEffect(() => {
+    void loadMyRequests();
+  }, [loadMyRequests]);
 
-    const prayer: PrayerRequest = {
-      id: Date.now().toString(),
-      request: newRequest,
-      date: new Date().toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      }),
-      status: 'Pending',
-      isAnonymous,
-      prayers: 0,
-    };
+  const canSubmit = message.trim().length > 0 && !isSubmitting;
 
-    setPrayers([prayer, ...prayers]);
-    setNewRequest('');
+  const resetForm = () => {
+    setMessage('');
+    setVisibility('private');
     setIsAnonymous(false);
-    setShowForm(false);
     setIsSubmitting(false);
   };
 
-  const handlePray = (id: string) => {
-    setPrayers((prev) => prev.map((p) => (p.id === id ? { ...p, prayers: p.prayers + 1 } : p)));
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Pending':
-        return 'bg-amber-100 text-amber-700';
-      case 'In Progress':
-        return 'bg-sky-100 text-navy';
-      case 'Answered':
-        return 'bg-emerald-100 text-emerald-700';
-      default:
-        return 'bg-slate-100 text-slate-700';
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setIsSubmitting(true);
+    try {
+      await submitMyRequest({ message, visibility, isAnonymous });
+      toast.success('Prayer shared', 'Your request is now visible on your dashboard.');
+      setOpen(false);
+      window.setTimeout(() => resetForm(), 0);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Pending':
-        return <Clock size={14} />;
-      case 'In Progress':
-        return <Heart size={14} />;
-      case 'Answered':
-        return <CheckCircle size={14} />;
-      default:
-        return null;
-    }
-  };
+  const summary = useMemo(() => {
+    return {
+      total: myRequests.length,
+      latest: myRequests[0] ?? null,
+    };
+  }, [myRequests]);
 
   return (
     <div className="space-y-6">
@@ -112,142 +66,176 @@ export default function PortalPrayers() {
           <p className="mt-1 text-slate-500">Share your prayer needs with our church family</p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600"
+          type="button"
+          onClick={() => setOpen(true)}
+          className="jhtm-btn jhtm-btn-primary h-11 px-5"
         >
-          <Plus size={18} />
-          New Prayer Request
+          Share a Prayer 🙏
         </button>
       </div>
 
-      {/* New Prayer Request Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="text-xl font-bold text-slate-900">Submit Prayer Request</h2>
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700">
-                  Your Prayer Request
-                </label>
-                <textarea
-                  value={newRequest}
-                  onChange={(e) => setNewRequest(e.target.value)}
-                  rows={4}
-                  placeholder="Share your prayer request with us..."
-                  className="mt-2 w-full rounded-xl border border-slate-200 p-4 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
-                  required
-                />
-              </div>
-
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isAnonymous}
-                  onChange={(e) => setIsAnonymous(e.target.checked)}
-                  className="h-5 w-5 rounded border-slate-300 text-navy focus:ring-sea-500"
-                />
-                <span className="text-sm text-slate-600">Submit anonymously</span>
-              </label>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 rounded-xl border border-slate-200 px-4 py-3 font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !newRequest.trim()}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-navy px-4 py-3 font-semibold text-white hover:bg-navy-600 disabled:opacity-50"
-                >
-                  <Send size={18} />
-                  {isSubmitting ? 'Submitting...' : 'Submit Request'}
-                </button>
-              </div>
-            </form>
-          </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="jhtm-card p-5">
+          <p className="text-sm font-semibold text-slate-500">Total requests</p>
+          <p className="mt-1 text-2xl font-extrabold text-navy">{summary.total}</p>
         </div>
-      )}
-
-      {/* Prayer Stats */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">Total Requests</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{prayers.length}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">Pending</p>
-          <p className="mt-1 text-2xl font-bold text-amber-600">
-            {prayers.filter((p) => p.status === 'Pending').length}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">Answered</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-600">
-            {prayers.filter((p) => p.status === 'Answered').length}
+        <div className="jhtm-card p-5">
+          <p className="text-sm font-semibold text-slate-500">Latest</p>
+          <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+            {summary.latest ? summary.latest.message : '—'}
           </p>
         </div>
       </div>
 
-      {/* Prayer Requests List */}
       <div className="space-y-4">
-        {prayers.map((prayer) => (
-          <div
-            key={prayer.id}
-            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(
-                      prayer.status
-                    )}`}
-                  >
-                    {getStatusIcon(prayer.status)}
-                    {prayer.status}
-                  </span>
-                  {prayer.isAnonymous && <span className="text-xs text-slate-400">Anonymous</span>}
-                </div>
-                <p className="mt-3 text-slate-900">{prayer.request}</p>
-                <p className="mt-3 text-sm text-slate-500">{prayer.date}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-4 border-t border-slate-100 pt-4">
-              <button
-                onClick={() => handlePray(prayer.id)}
-                className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-navy"
-              >
-                <Heart size={18} className="hover:fill-navy" />
-                Prayed {prayer.prayers > 0 && `(${prayer.prayers})`}
-              </button>
-              <button className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-navy">
-                <MessageCircle size={18} />
-                Comment
-              </button>
-            </div>
+        {myRequests.length === 0 ? (
+          <div className="jhtm-card p-12 text-center">
+            <Heart className="mx-auto h-12 w-12 text-slate-300" />
+            <h3 className="mt-4 text-lg font-semibold text-slate-900">No Prayer Requests</h3>
+            <p className="mt-2 text-slate-500">
+              Share a prayer request and it will appear instantly.
+            </p>
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="jhtm-btn jhtm-btn-primary mt-4"
+            >
+              Share a Prayer 🙏
+            </button>
           </div>
-        ))}
+        ) : (
+          myRequests.map((prayer) => <PrayerCard key={prayer.id} prayer={prayer} />)
+        )}
       </div>
 
-      {prayers.length === 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
-          <Heart className="mx-auto h-12 w-12 text-slate-300" />
-          <h3 className="mt-4 text-lg font-semibold text-slate-900">No Prayer Requests</h3>
-          <p className="mt-2 text-slate-500">You haven't submitted any prayer requests yet.</p>
-          <button
-            onClick={() => setShowForm(true)}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600"
-          >
-            <Plus size={18} />
-            Submit Your First Request
-          </button>
-        </div>
-      )}
+      <Modal
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) window.setTimeout(() => resetForm(), 0);
+        }}
+        title="Share a Prayer"
+        description="Your request will be saved as Submitted and visible on your dashboard immediately."
+        initialFocusRef={messageRef}
+        className="max-w-2xl"
+      >
+        <form className="space-y-5" onSubmit={submit}>
+          <div className="space-y-2">
+            <label htmlFor="prayer-message" className="block text-sm font-semibold text-slate-700">
+              Message *
+            </label>
+            <textarea
+              ref={messageRef}
+              id="prayer-message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={5}
+              placeholder="How can we pray for you?"
+              className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label
+                htmlFor="prayer-visibility"
+                className="block text-sm font-semibold text-slate-700"
+              >
+                Visibility
+              </label>
+              <select
+                id="prayer-visibility"
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as PrayerVisibility)}
+                className="jhtm-input h-11"
+              >
+                <option value="private">Private</option>
+                <option value="leaders">Leaders Only</option>
+                <option value="public">Public</option>
+              </select>
+            </div>
+
+            <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <input
+                type="checkbox"
+                checked={isAnonymous}
+                onChange={(e) => setIsAnonymous(e.target.checked)}
+                className="mt-1 h-5 w-5 rounded border-slate-300 text-navy focus:ring-sea-500"
+              />
+              <span className="text-sm font-semibold text-slate-700">Submit anonymously</span>
+            </label>
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="jhtm-btn jhtm-btn-ghost h-11"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className={cn('jhtm-btn jhtm-btn-primary h-11', isSubmitting && 'animate-pulse')}
+            >
+              {isSubmitting ? 'Sharing…' : 'Share a Prayer 🙏'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
+}
+
+function PrayerCard({ prayer }: { prayer: PrayerRequest }) {
+  const badge =
+    prayer.visibility === 'private'
+      ? 'bg-slate-100 text-slate-700'
+      : prayer.visibility === 'leaders'
+        ? 'bg-sky-100 text-navy'
+        : 'bg-emerald-100 text-emerald-700';
+
+  const visibilityText =
+    prayer.visibility === 'private'
+      ? 'Private'
+      : prayer.visibility === 'leaders'
+        ? 'Leaders Only'
+        : 'Public';
+
+  return (
+    <div className="jhtm-card p-6">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+          Submitted
+        </span>
+        <span
+          className={cn(
+            'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold',
+            badge
+          )}
+        >
+          {visibilityIcon(prayer.visibility)}
+          {visibilityText}
+        </span>
+        {prayer.isAnonymous ? (
+          <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+            Anonymous
+          </span>
+        ) : null}
+      </div>
+
+      <p className="mt-4 whitespace-pre-wrap text-sm text-slate-900">{prayer.message}</p>
+      <p className="mt-4 text-xs font-semibold text-slate-500">
+        {new Date(prayer.createdAt).toLocaleString()}
+      </p>
+    </div>
+  );
+}
+
+function visibilityIcon(visibility: PrayerVisibility) {
+  if (visibility === 'private') return <EyeOff size={14} aria-hidden="true" />;
+  if (visibility === 'leaders') return <Users size={14} aria-hidden="true" />;
+  return <Eye size={14} aria-hidden="true" />;
 }

@@ -1,9 +1,18 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarClock, ClipboardCheck, Heart, Calendar, User } from 'lucide-react';
 
+import { usePrayerRequestsStore } from '@/stores/prayerRequestsStore';
+
 export default function PortalDashboard() {
   const navigate = useNavigate();
+
+  const loadMyPrayerRequests = usePrayerRequestsStore((s) => s.loadMyRequests);
+  const myPrayerRequests = usePrayerRequestsStore((s) => s.myRequests);
+
+  useEffect(() => {
+    void loadMyPrayerRequests();
+  }, [loadMyPrayerRequests]);
 
   // Mock member data - in real app, this would come from API
   const memberName = 'John Smith';
@@ -12,32 +21,35 @@ export default function PortalDashboard() {
     { id: 2, name: 'Prayer Meeting', date: 'March 25, 2026', time: '7:00 PM' },
   ];
 
-  const stats = [
-    {
-      label: 'Services Attended',
-      value: '12',
-      icon: CalendarClock,
-      color: 'bg-sky-100 text-navy',
-    },
-    {
-      label: 'Check-ins This Month',
-      value: '3',
-      icon: ClipboardCheck,
-      color: 'bg-sea-100 text-navy',
-    },
-    {
-      label: 'Prayer Requests',
-      value: '2',
-      icon: Heart,
-      color: 'bg-sky-50 text-navy',
-    },
-    {
-      label: 'Upcoming Events',
-      value: '4',
-      icon: Calendar,
-      color: 'bg-sky-100 text-navy',
-    },
-  ];
+  const stats = useMemo(
+    () => [
+      {
+        label: 'Services Attended',
+        value: '12',
+        icon: CalendarClock,
+        color: 'bg-sky-100 text-navy',
+      },
+      {
+        label: 'Check-ins This Month',
+        value: '3',
+        icon: ClipboardCheck,
+        color: 'bg-sea-100 text-navy',
+      },
+      {
+        label: 'Prayer Requests',
+        value: String(myPrayerRequests.length),
+        icon: Heart,
+        color: 'bg-sky-50 text-navy',
+      },
+      {
+        label: 'Upcoming Events',
+        value: '4',
+        icon: Calendar,
+        color: 'bg-sky-100 text-navy',
+      },
+    ],
+    [myPrayerRequests.length]
+  );
 
   return (
     <div className="space-y-6">
@@ -144,6 +156,48 @@ export default function PortalDashboard() {
               <p className="text-xs text-slate-500">Browse upcoming events</p>
             </div>
           </button>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900">My Prayer Requests</h2>
+          <button
+            onClick={() => navigate('/portal/prayers')}
+            className="text-sm font-semibold text-navy hover:text-navy-700"
+          >
+            View All
+          </button>
+        </div>
+        <div className="mt-4 space-y-3">
+          {myPrayerRequests.length === 0 ? (
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-slate-700">No requests yet</p>
+              <p className="mt-1 text-sm text-slate-600">
+                Share a prayer request and it will show up here instantly.
+              </p>
+              <button
+                onClick={() => navigate('/portal/prayers')}
+                className="jhtm-btn jhtm-btn-primary mt-4 h-10"
+              >
+                Share a Prayer 🙏
+              </button>
+            </div>
+          ) : (
+            myPrayerRequests.slice(0, 3).map((r) => (
+              <div key={r.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                    Submitted
+                  </span>
+                  {r.isAnonymous ? (
+                    <span className="text-xs font-semibold text-slate-500">Anonymous</span>
+                  ) : null}
+                </div>
+                <p className="mt-3 text-sm text-slate-900">{r.message}</p>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

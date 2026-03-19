@@ -32,3 +32,9 @@ class LoginSerializer(serializers.Serializer):
                 "status": "login_successful"
             }
         raise serializers.ValidationError("Invalid credentials")
+
+
+class PrayerRequestSubmissionSerializer(serializers.Serializer):
+    message = serializers.CharField(allow_blank=False, trim_whitespace=True)
+    visibility = serializers.ChoiceField(choices=["private", "leaders", "public"])
+    is_anonymous = serializers.BooleanField(required=False, default=False)
