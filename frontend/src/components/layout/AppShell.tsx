@@ -61,7 +61,7 @@ export default function AppShell() {
   };
 
   return (
-    <div className="relative flex min-h-screen bg-slate-50">
+    <div className="relative flex min-h-screen bg-cream">
       {!sidebarCollapsed ? (
         <button
           type="button"
@@ -104,7 +104,7 @@ export default function AppShell() {
               />
               <input
                 type="text"
-                className="w-full rounded-full border border-transparent bg-slate-100 py-2 pl-10 pr-4 text-sm text-slate-900 outline-none transition-all duration-200 focus:border-blue-200 focus:bg-white focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-full border border-transparent bg-white py-2 pl-10 pr-4 text-sm text-slate-900 outline-none transition-all duration-200 focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
                 placeholder="Search members, events, ministries"
               />
             </div>
@@ -129,7 +129,7 @@ export default function AppShell() {
                   Administrator
                 </p>
               </div>
-              <div className="rounded-full bg-blue-100 p-2 text-blue-700">
+              <div className="rounded-full bg-sky-100 p-2 text-navy">
                 <User size={20} />
               </div>
               <button

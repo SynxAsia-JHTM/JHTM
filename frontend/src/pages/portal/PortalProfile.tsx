@@ -52,7 +52,7 @@ export default function PortalProfile() {
         {!isEditing ? (
           <button
             onClick={() => setIsEditing(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            className="inline-flex items-center gap-2 rounded-xl bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600"
           >
             <User size={18} />
             Edit Profile
@@ -81,7 +81,7 @@ export default function PortalProfile() {
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 p-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-sky-100 text-navy">
               <User size={40} />
             </div>
             <div>
@@ -107,7 +107,7 @@ export default function PortalProfile() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                 />
               ) : (
                 <p className="rounded-xl bg-slate-50 px-4 py-3 text-slate-900">{formData.name}</p>
@@ -125,7 +125,7 @@ export default function PortalProfile() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleChange('email', e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                 />
               ) : (
                 <p className="rounded-xl bg-slate-50 px-4 py-3 text-slate-900">{formData.email}</p>
@@ -143,7 +143,7 @@ export default function PortalProfile() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => handleChange('phone', e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                 />
               ) : (
                 <p className="rounded-xl bg-slate-50 px-4 py-3 text-slate-900">{formData.phone}</p>
@@ -161,7 +161,7 @@ export default function PortalProfile() {
                   type="date"
                   value={formData.birthdate}
                   onChange={(e) => handleChange('birthdate', e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                 />
               ) : (
                 <p className="rounded-xl bg-slate-50 px-4 py-3 text-slate-900">
@@ -181,7 +181,7 @@ export default function PortalProfile() {
                 <select
                   value={formData.gender}
                   onChange={(e) => handleChange('gender', e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                 >
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -202,7 +202,7 @@ export default function PortalProfile() {
                 <select
                   value={formData.ministry}
                   onChange={(e) => handleChange('ministry', e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                 >
                   {ministries.map((m) => (
                     <option key={m} value={m}>

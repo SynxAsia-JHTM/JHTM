@@ -62,7 +62,7 @@ export default function Sidebar({
             onClick={onToggleCollapsed}
             className={cn(
               'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2'
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2'
             )}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-expanded={!collapsed}
@@ -71,7 +71,7 @@ export default function Sidebar({
           </button>
 
           <div className={cn('flex min-w-0 items-center gap-3', collapsed && 'hidden')}>
-            <div className="rounded-lg bg-blue-600 p-2">
+            <div className="rounded-lg bg-navy p-2">
               <Church className="text-white" size={20} aria-hidden="true" />
             </div>
             <div className="min-w-0">
@@ -83,7 +83,7 @@ export default function Sidebar({
           </div>
         </div>
 
-        <nav className={cn('flex-1 space-y-1 overflow-y-auto p-3', collapsed && 'px-2')}>
+        <nav className={cn('flex-1 space-y-1 p-3', collapsed && 'px-2')}>
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -93,11 +93,11 @@ export default function Sidebar({
               className={({ isActive }) =>
                 cn(
                   'flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors duration-200',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2',
                   collapsed && 'justify-center px-0',
                   isActive
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-sky-100 text-navy'
+                    : 'text-slate-600 hover:bg-sky-50 hover:text-slate-900'
                 )
               }
             >
@@ -113,7 +113,7 @@ export default function Sidebar({
             onClick={onSignOut}
             className={cn(
               'flex h-11 w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2',
               collapsed && 'justify-center px-0'
             )}
             aria-label="Sign out"

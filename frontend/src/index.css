@@ -4,7 +4,49 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply bg-cream text-slate-900 antialiased;
+  }
+}
+
+@layer components {
+  .jhtm-card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+  }
+
+  .jhtm-card-muted {
+    @apply rounded-2xl border border-slate-200 bg-slate-50;
+  }
+
+  .jhtm-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2;
+    @apply disabled:pointer-events-none disabled:opacity-60;
+  }
+
+  .jhtm-btn-primary {
+    @apply bg-navy text-cream hover:bg-navy-600;
+  }
+
+  .jhtm-btn-secondary {
+    @apply bg-sea text-navy hover:bg-sea-600;
+  }
+
+  .jhtm-btn-ghost {
+    @apply bg-transparent text-navy hover:bg-sky-100;
+  }
+
+  .jhtm-btn-soft {
+    @apply bg-sky-100 text-navy hover:bg-sky-200;
+  }
+
+  .jhtm-input {
+    @apply block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400;
+    @apply outline-none transition-all duration-200;
+    @apply focus:border-sea-200 focus:ring-2 focus:ring-sea-500;
+  }
+
+  .jhtm-pill {
+    @apply inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700;
   }
 }
 

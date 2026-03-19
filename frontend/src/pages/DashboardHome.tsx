@@ -5,7 +5,7 @@ import { formatDashboardDateTime } from '@/lib/eventFormat';
 import { useEventsStore } from '@/stores/eventsStore';
 
 const statsBase = [
-  { label: 'Total Members', value: '1,248', icon: Users, color: 'text-blue-700', bg: 'bg-blue-50' },
+  { label: 'Total Members', value: '1,248', icon: Users, color: 'text-navy', bg: 'bg-sky-50' },
   {
     label: 'Active Ministries',
     value: '18',

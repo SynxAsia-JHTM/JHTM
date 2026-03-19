@@ -105,7 +105,7 @@ export default function PortalEvents() {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'Worship':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-sky-100 text-navy';
       case 'Prayer':
         return 'bg-purple-100 text-purple-700';
       case 'Youth':
@@ -132,7 +132,7 @@ export default function PortalEvents() {
             onClick={() => setFilter(cat)}
             className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
               filter === cat
-                ? 'bg-blue-600 text-white'
+                ? 'bg-navy text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
@@ -184,7 +184,7 @@ export default function PortalEvents() {
           {filteredEvents.map((event) => (
             <div
               key={event.id}
-              className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
+              className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-sea-300 hover:shadow-md"
             >
               <div className="flex items-start justify-between">
                 <span
@@ -233,7 +233,7 @@ export default function PortalEvents() {
                 ) : (
                   <button
                     onClick={() => handleRegister(event.id)}
-                    className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                    className="flex items-center gap-1 text-sm font-semibold text-navy hover:text-navy-700"
                   >
                     Register
                     <ArrowRight size={16} />

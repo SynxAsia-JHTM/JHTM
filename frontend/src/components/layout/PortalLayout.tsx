@@ -38,31 +38,16 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Mobile Header */}
-      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 lg:hidden">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-blue-600 p-2">
-            <Church className="text-white" size={20} />
-          </div>
-          <span className="font-bold text-slate-900">JHTM Portal</span>
-        </div>
-        <button onClick={handleLogout} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
-          <LogOut size={20} />
-        </button>
-      </header>
-
-      <div className="flex">
-        {/* Sidebar */}
+    <div className="h-screen bg-cream">
+      <div className="flex h-full">
         <aside
           className={cn(
-            'border-r border-slate-200 bg-white transition-[width] duration-300 ease-in-out',
-            'fixed inset-y-0 left-0 z-40 hidden lg:static lg:z-auto lg:block',
-            collapsed ? 'w-16' : 'w-72 sm:w-80 lg:w-64'
+            'fixed inset-y-0 left-0 z-40 hidden border-r border-slate-200 bg-white transition-[width] duration-300 ease-in-out lg:block',
+            collapsed ? 'w-16' : 'w-64'
           )}
+          aria-label="Member portal"
         >
-          <div className="flex h-full flex-col">
-            {/* Logo Section */}
+          <div className="flex h-full flex-col overflow-hidden">
             <div
               className={cn(
                 'flex items-center gap-3 border-b border-slate-100 p-4',
@@ -73,8 +58,8 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
                 type="button"
                 onClick={() => setCollapsed(!collapsed)}
                 className={cn(
-                  'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2'
+                  'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-sky-50 hover:text-slate-900',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2'
                 )}
                 aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 aria-expanded={!collapsed}
@@ -83,7 +68,7 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
               </button>
 
               <div className={cn('flex min-w-0 items-center gap-3', collapsed && 'hidden')}>
-                <div className="rounded-lg bg-blue-600 p-2">
+                <div className="rounded-lg bg-navy p-2">
                   <Church className="text-white" size={20} />
                 </div>
                 <div className="min-w-0">
@@ -95,7 +80,6 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
               </div>
             </div>
 
-            {/* Navigation */}
             <nav className={cn('flex-1 space-y-1 p-3', collapsed && 'px-2')}>
               {portalNavItems.map((item) => (
                 <NavLink
@@ -105,49 +89,66 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
                   className={({ isActive }) =>
                     cn(
                       'flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors duration-200',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2',
                       collapsed && 'justify-center px-0',
                       isActive
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        ? 'bg-sky-100 text-navy'
+                        : 'text-slate-600 hover:bg-sky-50 hover:text-slate-900'
                     )
                   }
                 >
                   <item.icon size={20} />
-                  <span className={cn('truncate', collapsed && 'lg:hidden')}>{item.label}</span>
+                  <span className={cn('truncate', collapsed && 'sr-only')}>{item.label}</span>
                 </NavLink>
               ))}
             </nav>
 
-            {/* Logout Button */}
             <div className={cn('border-t border-slate-100 p-3', collapsed && 'px-2')}>
               <button
                 onClick={handleLogout}
                 className={cn(
-                  'flex h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50',
+                  'flex h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2',
                   collapsed && 'justify-center px-0'
                 )}
               >
                 <LogOut size={20} />
-                <span className={cn('truncate', collapsed && 'lg:hidden')}>Logout</span>
+                <span className={cn('truncate', collapsed && 'sr-only')}>Logout</span>
               </button>
-            </div>
 
-            {/* Footer */}
-            <div
-              className={cn(
-                'border-t border-slate-100 p-3 text-xs font-semibold text-slate-400',
-                collapsed && 'px-2 text-center'
-              )}
-            >
-              <span className={cn(collapsed && 'lg:hidden')}>JHTM Church</span>
+              <div
+                className={cn(
+                  'mt-3 text-xs font-semibold text-slate-400',
+                  collapsed && 'text-center'
+                )}
+              >
+                <span className={cn(collapsed && 'sr-only')}>JHTM Church</span>
+                <span aria-hidden="true" className={cn(!collapsed && 'hidden')}>
+                  •
+                </span>
+              </div>
             </div>
           </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 pb-24 lg:p-6 lg:pb-6">{children}</main>
+        <div className={cn('flex min-w-0 flex-1 flex-col', collapsed ? 'lg:pl-16' : 'lg:pl-64')}>
+          <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur-sm lg:hidden">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-navy p-2">
+                <Church className="text-white" size={20} />
+              </div>
+              <span className="font-bold text-slate-900">JHTM Portal</span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-sky-100"
+            >
+              <LogOut size={20} />
+            </button>
+          </header>
+
+          <main className="flex-1 overflow-y-auto p-4 pb-24 lg:p-6 lg:pb-6">{children}</main>
+        </div>
       </div>
 
       <PortalBottomTabs />

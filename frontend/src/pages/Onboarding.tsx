@@ -4,13 +4,6 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import BackToHomeLink from '@/components/navigation/BackToHomeLink';
 import { useToast } from '@/components/ui/useToast';
 
-const palette = {
-  primary: '#355872',
-  secondary: '#7AAACE',
-  highlight: '#9CD5FF',
-  background: '#F7F8F0',
-};
-
 type StepKey = 'profile' | 'notifications' | 'privacy';
 
 export default function Onboarding() {
@@ -69,15 +62,10 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen p-4" style={{ background: palette.background }}>
+    <div className="min-h-screen bg-cream p-4">
       <BackToHomeLink variant="floating" />
       <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-        <div
-          className="px-8 pb-6 pt-8"
-          style={{
-            background: `linear-gradient(135deg, ${palette.primary} 0%, ${palette.secondary} 55%, ${palette.background} 100%)`,
-          }}
-        >
+        <div className="bg-gradient-to-br from-navy via-sea to-cream px-8 pb-6 pt-8">
           <p className="text-center text-xs font-bold uppercase tracking-wider text-white/80">
             Onboarding
           </p>
@@ -131,7 +119,7 @@ export default function Onboarding() {
                   <input
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sky-200 focus:ring-2 focus:ring-sky-600"
+                    className="jhtm-input h-11 px-4"
                     placeholder="Your name"
                   />
                 </div>
@@ -142,7 +130,7 @@ export default function Onboarding() {
                   <input
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sky-200 focus:ring-2 focus:ring-sky-600"
+                    className="jhtm-input h-11 px-4"
                     placeholder="Phone"
                   />
                 </div>
@@ -156,12 +144,7 @@ export default function Onboarding() {
                 >
                   Skip for now
                 </button>
-                <button
-                  type="button"
-                  onClick={goNext}
-                  className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
-                  style={{ backgroundColor: palette.primary }}
-                >
+                <button type="button" onClick={goNext} className="jhtm-btn jhtm-btn-primary h-11">
                   Continue
                 </button>
               </div>
@@ -180,7 +163,7 @@ export default function Onboarding() {
                   type="checkbox"
                   checked={allowNotifications}
                   onChange={(e) => setAllowNotifications(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-navy focus:ring-sky-600"
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-navy focus:ring-sea-500"
                 />
                 <div>
                   <p className="text-sm font-semibold text-slate-900">Enable notifications</p>
@@ -198,12 +181,7 @@ export default function Onboarding() {
                 >
                   Back
                 </button>
-                <button
-                  type="button"
-                  onClick={goNext}
-                  className="inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
-                  style={{ backgroundColor: palette.primary }}
-                >
+                <button type="button" onClick={goNext} className="jhtm-btn jhtm-btn-primary h-11">
                   Continue
                 </button>
               </div>
@@ -224,7 +202,7 @@ export default function Onboarding() {
                   type="checkbox"
                   checked={shareProfile}
                   onChange={(e) => setShareProfile(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-navy focus:ring-sky-600"
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-navy focus:ring-sea-500"
                 />
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
@@ -241,7 +219,7 @@ export default function Onboarding() {
                   type="checkbox"
                   checked={sharePrayerRequests}
                   onChange={(e) => setSharePrayerRequests(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-navy focus:ring-sky-600"
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-navy focus:ring-sea-500"
                 />
                 <div>
                   <p className="text-sm font-semibold text-slate-900">
@@ -264,8 +242,7 @@ export default function Onboarding() {
                 <button
                   type="button"
                   onClick={complete}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
-                  style={{ backgroundColor: palette.primary }}
+                  className="jhtm-btn jhtm-btn-primary h-11 gap-2"
                 >
                   <CheckCircle2 size={18} aria-hidden="true" />
                   Finish

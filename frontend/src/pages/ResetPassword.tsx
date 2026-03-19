@@ -3,28 +3,16 @@ import { Mail } from 'lucide-react';
 import BackToHomeLink from '@/components/navigation/BackToHomeLink';
 import { useToast } from '@/components/ui/useToast';
 
-const palette = {
-  primary: '#355872',
-  secondary: '#7AAACE',
-  highlight: '#9CD5FF',
-  background: '#F7F8F0',
-};
-
 export default function ResetPassword() {
   const toast = useToast();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   return (
-    <div className="min-h-screen p-4" style={{ background: palette.background }}>
+    <div className="min-h-screen bg-cream p-4">
       <BackToHomeLink variant="floating" />
       <div className="mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-        <div
-          className="px-8 pb-6 pt-8"
-          style={{
-            background: `linear-gradient(135deg, ${palette.primary} 0%, ${palette.secondary} 55%, ${palette.background} 100%)`,
-          }}
-        >
+        <div className="bg-gradient-to-br from-navy via-sea to-cream px-8 pb-6 pt-8">
           <h1 className="text-center text-2xl font-extrabold text-white">Reset password</h1>
           <p className="mt-1 text-center text-sm font-semibold text-white/85">
             Enter your email to receive reset instructions.
@@ -57,7 +45,7 @@ export default function ResetPassword() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="block h-11 w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:border-sky-200 focus:bg-white focus:ring-2 focus:ring-sky-600"
+                className="jhtm-input h-11 pl-10"
                 placeholder="you@example.com"
               />
             </div>
@@ -66,8 +54,7 @@ export default function ResetPassword() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-md transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
-            style={{ backgroundColor: palette.primary }}
+            className="jhtm-btn jhtm-btn-primary h-11 w-full shadow-md"
           >
             {isSubmitting ? 'Sending…' : 'Send reset link'}
           </button>

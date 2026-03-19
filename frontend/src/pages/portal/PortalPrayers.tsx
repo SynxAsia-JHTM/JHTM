@@ -83,7 +83,7 @@ export default function PortalPrayers() {
       case 'Pending':
         return 'bg-amber-100 text-amber-700';
       case 'In Progress':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-sky-100 text-navy';
       case 'Answered':
         return 'bg-emerald-100 text-emerald-700';
       default:
@@ -113,7 +113,7 @@ export default function PortalPrayers() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="inline-flex items-center gap-2 rounded-xl bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600"
         >
           <Plus size={18} />
           New Prayer Request
@@ -135,7 +135,7 @@ export default function PortalPrayers() {
                   onChange={(e) => setNewRequest(e.target.value)}
                   rows={4}
                   placeholder="Share your prayer request with us..."
-                  className="mt-2 w-full rounded-xl border border-slate-200 p-4 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="mt-2 w-full rounded-xl border border-slate-200 p-4 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                   required
                 />
               </div>
@@ -145,7 +145,7 @@ export default function PortalPrayers() {
                   type="checkbox"
                   checked={isAnonymous}
                   onChange={(e) => setIsAnonymous(e.target.checked)}
-                  className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                  className="h-5 w-5 rounded border-slate-300 text-navy focus:ring-sea-500"
                 />
                 <span className="text-sm text-slate-600">Submit anonymously</span>
               </label>
@@ -161,7 +161,7 @@ export default function PortalPrayers() {
                 <button
                   type="submit"
                   disabled={isSubmitting || !newRequest.trim()}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-navy px-4 py-3 font-semibold text-white hover:bg-navy-600 disabled:opacity-50"
                 >
                   <Send size={18} />
                   {isSubmitting ? 'Submitting...' : 'Submit Request'}
@@ -220,12 +220,12 @@ export default function PortalPrayers() {
             <div className="mt-4 flex items-center gap-4 border-t border-slate-100 pt-4">
               <button
                 onClick={() => handlePray(prayer.id)}
-                className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-purple-600"
+                className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-navy"
               >
-                <Heart size={18} className="hover:fill-purple-600" />
+                <Heart size={18} className="hover:fill-navy" />
                 Prayed {prayer.prayers > 0 && `(${prayer.prayers})`}
               </button>
-              <button className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600">
+              <button className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-navy">
                 <MessageCircle size={18} />
                 Comment
               </button>
@@ -241,7 +241,7 @@ export default function PortalPrayers() {
           <p className="mt-2 text-slate-500">You haven't submitted any prayer requests yet.</p>
           <button
             onClick={() => setShowForm(true)}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600"
           >
             <Plus size={18} />
             Submit Your First Request

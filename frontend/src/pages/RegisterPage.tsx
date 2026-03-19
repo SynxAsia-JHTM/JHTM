@@ -43,7 +43,7 @@ export default function RegisterPage() {
 
   if (step === 2) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream to-sky-50 p-4">
         <div className="w-full max-w-md">
           <div className="rounded-2xl bg-white p-8 shadow-xl text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
@@ -53,19 +53,19 @@ export default function RegisterPage() {
             <p className="mt-2 text-slate-600">
               Thank you for registering. We're excited to have you join us!
             </p>
-            <div className="mt-6 rounded-xl bg-blue-50 p-4 text-left">
-              <p className="text-sm font-semibold text-blue-900">What is Next?</p>
-              <ul className="mt-2 space-y-2 text-sm text-blue-800">
+            <div className="mt-6 rounded-xl bg-sky-50 p-4 text-left">
+              <p className="text-sm font-semibold text-navy">What is Next?</p>
+              <ul className="mt-2 space-y-2 text-sm text-navy-700">
                 <li className="flex items-center gap-2">
-                  <CheckCircle size={14} className="text-blue-600" />
+                  <CheckCircle size={14} className="text-navy" />
                   Check your email for service times
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle size={14} className="text-blue-600" />
+                  <CheckCircle size={14} className="text-navy" />
                   Our welcome team will greet you
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle size={14} className="text-blue-600" />
+                  <CheckCircle size={14} className="text-navy" />
                   Feel free to join us for refreshments
                 </li>
               </ul>
@@ -79,7 +79,7 @@ export default function RegisterPage() {
               </Link>
               <Link
                 to="/login"
-                className="flex-1 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
+                className="flex-1 rounded-xl bg-navy px-4 py-3 font-semibold text-white hover:bg-navy-600"
               >
                 Login
               </Link>
@@ -91,12 +91,12 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-cream to-sky-50">
       {/* Header */}
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-600 p-2">
+            <div className="rounded-lg bg-navy p-2">
               <Church className="text-white" size={24} />
             </div>
             <span className="text-lg font-bold text-slate-900">JHTM Church</span>
@@ -105,7 +105,7 @@ export default function RegisterPage() {
             <span className="text-sm text-slate-500">Already a member?</span>
             <Link
               to="/login"
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600"
             >
               Login
             </Link>
@@ -122,12 +122,12 @@ export default function RegisterPage() {
 
         {/* Progress Steps */}
         <div className="mt-8 flex items-center justify-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-navy text-sm font-semibold text-white">
             1
           </div>
-          <div className="h-1 w-16 rounded-full bg-blue-600" />
+          <div className="h-1 w-16 rounded-full bg-navy" />
           <div
-            className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${step === 2 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'}`}
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${step === 2 ? 'bg-navy text-white' : 'bg-slate-200 text-slate-500'}`}
           >
             2
           </div>
@@ -148,7 +148,7 @@ export default function RegisterPage() {
                   value={formData.firstName}
                   onChange={(e) => handleChange('firstName', e.target.value)}
                   required
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                   placeholder="John"
                 />
               </div>
@@ -162,7 +162,7 @@ export default function RegisterPage() {
                   value={formData.lastName}
                   onChange={(e) => handleChange('lastName', e.target.value)}
                   required
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                   placeholder="Smith"
                 />
               </div>
@@ -176,7 +176,7 @@ export default function RegisterPage() {
                   value={formData.email}
                   onChange={(e) => handleChange('email', e.target.value)}
                   required
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                   placeholder="john@example.com"
                 />
               </div>
@@ -189,7 +189,7 @@ export default function RegisterPage() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => handleChange('phone', e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                   placeholder="+1 (555) 000-0000"
                 />
               </div>
@@ -210,7 +210,7 @@ export default function RegisterPage() {
                   value={formData.visitDate}
                   onChange={(e) => handleChange('visitDate', e.target.value)}
                   required
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                 />
               </div>
               <div className="space-y-2">
@@ -222,7 +222,7 @@ export default function RegisterPage() {
                   type="text"
                   value={formData.referredBy}
                   onChange={(e) => handleChange('referredBy', e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
                   placeholder="Friend, family, website, etc."
                 />
               </div>
@@ -240,7 +240,7 @@ export default function RegisterPage() {
                     value="yes"
                     checked={formData.isFirstVisit === 'yes'}
                     onChange={(e) => handleChange('isFirstVisit', e.target.value)}
-                    className="h-4 w-4 text-blue-600"
+                    className="h-4 w-4 text-navy focus:ring-sea-500"
                   />
                   <span className="text-slate-600">Yes, this is my first time</span>
                 </label>
@@ -251,7 +251,7 @@ export default function RegisterPage() {
                     value="no"
                     checked={formData.isFirstVisit === 'no'}
                     onChange={(e) => handleChange('isFirstVisit', e.target.value)}
-                    className="h-4 w-4 text-blue-600"
+                    className="h-4 w-4 text-navy focus:ring-sea-500"
                   />
                   <span className="text-slate-600">No, I've visited before</span>
                 </label>
@@ -280,8 +280,8 @@ export default function RegisterPage() {
                   key={interest}
                   className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-semibold transition-colors ${
                     formData.interests.includes(interest)
-                      ? 'border-blue-300 bg-blue-50 text-blue-700'
-                      : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                      ? 'border-sea-300 bg-sky-50 text-navy'
+                      : 'border-slate-200 text-slate-600 hover:border-sea-200 hover:bg-sky-50'
                   }`}
                 >
                   <input
@@ -308,7 +308,7 @@ export default function RegisterPage() {
                 onChange={(e) => handleChange('notes', e.target.value)}
                 rows={3}
                 placeholder="Prayer requests, questions, accessibility needs, etc."
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-sea-300 focus:ring-2 focus:ring-sky-100"
               />
             </div>
           </div>
@@ -317,7 +317,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-4 text-lg font-bold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-navy px-6 py-4 text-lg font-bold text-white shadow-lg transition-all hover:bg-navy-600 hover:shadow-xl disabled:opacity-50"
           >
             {isSubmitting ? (
               'Submitting...'

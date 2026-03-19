@@ -127,8 +127,8 @@ export default function PortalAttendance() {
               <p className="text-sm font-semibold text-slate-500">Total Services</p>
               <p className="mt-1 text-2xl font-bold text-slate-900">{stats.total}</p>
             </div>
-            <div className="rounded-xl bg-blue-100 p-3">
-              <CalendarClock className="text-blue-600" size={24} />
+            <div className="rounded-xl bg-sky-100 p-3">
+              <CalendarClock className="text-navy" size={24} />
             </div>
           </div>
         </div>
@@ -179,9 +179,7 @@ export default function PortalAttendance() {
             key={f}
             onClick={() => setFilter(f)}
             className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
-              filter === f
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              filter === f ? 'bg-navy text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             {f}

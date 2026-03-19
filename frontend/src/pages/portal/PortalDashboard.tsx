@@ -17,45 +17,45 @@ export default function PortalDashboard() {
       label: 'Services Attended',
       value: '12',
       icon: CalendarClock,
-      color: 'bg-blue-100 text-blue-700',
+      color: 'bg-sky-100 text-navy',
     },
     {
       label: 'Check-ins This Month',
       value: '3',
       icon: ClipboardCheck,
-      color: 'bg-emerald-100 text-emerald-700',
+      color: 'bg-sea-100 text-navy',
     },
     {
       label: 'Prayer Requests',
       value: '2',
       icon: Heart,
-      color: 'bg-purple-100 text-purple-700',
+      color: 'bg-sky-50 text-navy',
     },
     {
       label: 'Upcoming Events',
       value: '4',
       icon: Calendar,
-      color: 'bg-amber-100 text-amber-700',
+      color: 'bg-sky-100 text-navy',
     },
   ];
 
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
-      <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
+      <div className="rounded-2xl bg-gradient-to-r from-navy to-sea p-6 text-white">
         <h1 className="text-2xl font-bold">Welcome back, {memberName}!</h1>
-        <p className="mt-1 text-blue-100">We're glad to have you as part of JHTM Church.</p>
+        <p className="mt-1 text-white/80">We're glad to have you as part of JHTM Church.</p>
         <div className="mt-4 flex gap-3">
           <button
             onClick={() => navigate('/portal/checkin')}
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-navy hover:bg-sky-50"
           >
             <ClipboardCheck size={18} />
             Check-in Now
           </button>
           <button
             onClick={() => navigate('/portal/prayers')}
-            className="inline-flex items-center gap-2 rounded-xl border border-blue-400 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/40 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
           >
             <Heart size={18} />
             Submit Prayer Request
@@ -74,7 +74,7 @@ export default function PortalDashboard() {
               else if (stat.label.includes('Upcoming')) navigate('/portal/events');
               else if (stat.label.includes('Services')) navigate('/portal/attendance');
             }}
-            className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
+            className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:border-sea-300 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -110,8 +110,8 @@ export default function PortalDashboard() {
             onClick={() => navigate('/portal/checkin')}
             className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 transition-colors hover:bg-slate-50"
           >
-            <div className="rounded-lg bg-blue-100 p-2">
-              <ClipboardCheck className="text-blue-600" size={20} />
+            <div className="rounded-lg bg-sky-100 p-2">
+              <ClipboardCheck className="text-navy" size={20} />
             </div>
             <div className="text-left">
               <p className="font-semibold text-slate-900">Check-in</p>
@@ -123,8 +123,8 @@ export default function PortalDashboard() {
             onClick={() => navigate('/portal/prayers')}
             className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 transition-colors hover:bg-slate-50"
           >
-            <div className="rounded-lg bg-purple-100 p-2">
-              <Heart className="text-purple-600" size={20} />
+            <div className="rounded-lg bg-sea-100 p-2">
+              <Heart className="text-navy" size={20} />
             </div>
             <div className="text-left">
               <p className="font-semibold text-slate-900">Prayer Request</p>
@@ -136,8 +136,8 @@ export default function PortalDashboard() {
             onClick={() => navigate('/portal/events')}
             className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 transition-colors hover:bg-slate-50"
           >
-            <div className="rounded-lg bg-amber-100 p-2">
-              <Calendar className="text-amber-600" size={20} />
+            <div className="rounded-lg bg-sky-100 p-2">
+              <Calendar className="text-navy" size={20} />
             </div>
             <div className="text-left">
               <p className="font-semibold text-slate-900">View Events</p>
@@ -153,7 +153,7 @@ export default function PortalDashboard() {
           <h2 className="text-lg font-bold text-slate-900">Upcoming Services</h2>
           <button
             onClick={() => navigate('/portal/events')}
-            className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+            className="text-sm font-semibold text-navy hover:text-navy-700"
           >
             View All
           </button>
@@ -172,7 +172,7 @@ export default function PortalDashboard() {
               </div>
               <button
                 onClick={() => navigate('/portal/checkin')}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600"
               >
                 Check-in
               </button>

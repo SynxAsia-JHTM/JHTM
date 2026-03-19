@@ -159,7 +159,7 @@ export default function Events() {
           ref={addButtonRef}
           type="button"
           onClick={() => setIsAddOpen(true)}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-navy px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2"
         >
           <Plus size={18} aria-hidden="true" />
           Add Event
@@ -180,7 +180,7 @@ export default function Events() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
               type="search"
               placeholder="Search by event, date, location..."
               aria-label="Search events"
@@ -252,7 +252,7 @@ export default function Events() {
                             setEditEventId(e.id);
                             setIsEditOpen(true);
                           }}
-                          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2"
                           aria-label={`Edit ${e.name}`}
                         >
                           <Pencil size={18} aria-hidden="true" />
@@ -260,7 +260,7 @@ export default function Events() {
                         <button
                           type="button"
                           onClick={() => setDeleteEventId(e.id)}
-                          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2"
                           aria-label={`Delete ${e.name}`}
                         >
                           <Trash2 size={18} aria-hidden="true" />
@@ -321,7 +321,7 @@ export default function Events() {
 }
 
 function statusPill(status: EventStatus) {
-  if (status === 'Scheduled') return 'bg-blue-100 text-blue-700';
+  if (status === 'Scheduled') return 'bg-sky-100 text-navy';
   if (status === 'Planned') return 'bg-slate-200 text-slate-700';
   if (status === 'Completed') return 'bg-emerald-100 text-emerald-700';
   return 'bg-red-100 text-red-700';
@@ -347,7 +347,7 @@ function SortableTh({
         type="button"
         onClick={() => onSort(sortKey)}
         className={cn(
-          'inline-flex h-11 w-full items-center justify-between gap-2 py-3 text-left transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2',
+          'inline-flex h-11 w-full items-center justify-between gap-2 py-3 text-left transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2',
           isActive && 'text-slate-700'
         )}
         aria-label={`Sort by ${label}`}
@@ -407,7 +407,7 @@ function DatalistInput({
             'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
             error
               ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
-              : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+              : 'border-slate-200 focus:border-sea-200 focus:ring-sea-500'
           )}
           type="text"
           placeholder={placeholder}
@@ -544,7 +544,7 @@ function AddEventModal({
                   'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
                   touched.name && errors.name
                     ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
-                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                    : 'border-slate-200 focus:border-sea-200 focus:ring-sea-500'
                 )}
                 type="text"
                 required
@@ -565,7 +565,7 @@ function AddEventModal({
                   'h-11 w-full rounded-xl border bg-white px-3 text-sm text-slate-900 outline-none transition focus:ring-2',
                   touched.status && errors.status
                     ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
-                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                    : 'border-slate-200 focus:border-sea-200 focus:ring-sea-500'
                 )}
                 required
               >
@@ -589,7 +589,7 @@ function AddEventModal({
                   'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
                   touched.date && errors.date
                     ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
-                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                    : 'border-slate-200 focus:border-sea-200 focus:ring-sea-500'
                 )}
                 type="date"
                 required
@@ -609,7 +609,7 @@ function AddEventModal({
                   'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
                   touched.time && errors.time
                     ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
-                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                    : 'border-slate-200 focus:border-sea-200 focus:ring-sea-500'
                 )}
                 type="time"
                 required
@@ -653,7 +653,7 @@ function AddEventModal({
           <button
             type="button"
             onClick={close}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2"
           >
             Cancel
           </button>
@@ -661,7 +661,7 @@ function AddEventModal({
             type="submit"
             disabled={!canSubmit}
             className={cn(
-              'inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-blue-600/60',
+              'inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-navy px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-navy/60',
               isSubmitting && 'animate-pulse'
             )}
           >
@@ -773,7 +773,7 @@ function EditEventModal({
                   'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
                   touched.name && errors.name
                     ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
-                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                    : 'border-slate-200 focus:border-sea-200 focus:ring-sea-500'
                 )}
                 type="text"
                 required
@@ -794,7 +794,7 @@ function EditEventModal({
                   'h-11 w-full rounded-xl border bg-white px-3 text-sm text-slate-900 outline-none transition focus:ring-2',
                   touched.status && errors.status
                     ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
-                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                    : 'border-slate-200 focus:border-sea-200 focus:ring-sea-500'
                 )}
                 required
               >
@@ -818,7 +818,7 @@ function EditEventModal({
                   'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
                   touched.date && errors.date
                     ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
-                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                    : 'border-slate-200 focus:border-sea-200 focus:ring-sea-500'
                 )}
                 type="date"
                 required
@@ -838,7 +838,7 @@ function EditEventModal({
                   'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2',
                   touched.time && errors.time
                     ? 'border-red-200 focus:border-red-200 focus:ring-red-200'
-                    : 'border-slate-200 focus:border-blue-200 focus:ring-blue-600'
+                    : 'border-slate-200 focus:border-sea-200 focus:ring-sea-500'
                 )}
                 type="time"
                 required
@@ -882,7 +882,7 @@ function EditEventModal({
           <button
             type="button"
             onClick={close}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2"
           >
             Cancel
           </button>
@@ -890,7 +890,7 @@ function EditEventModal({
             type="submit"
             disabled={!canSubmit}
             className={cn(
-              'inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-blue-600/60',
+              'inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-navy px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-navy-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-navy/60',
               isSubmitting && 'animate-pulse'
             )}
           >
@@ -939,14 +939,14 @@ function ConfirmDeleteModal({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2"
           >
             Delete
           </button>

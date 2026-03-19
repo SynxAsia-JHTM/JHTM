@@ -22,13 +22,6 @@ type FilterState = {
   memberQuery: string;
 };
 
-const palette = {
-  primary: '#355872',
-  secondary: '#7AAACE',
-  highlight: '#9CD5FF',
-  background: '#F7F8F0',
-};
-
 function isSameDay(dateIso: string, filterIso: string) {
   return dateIso === filterIso;
 }
@@ -135,14 +128,9 @@ export default function Attendance() {
   };
 
   return (
-    <div className="space-y-6" style={{ background: palette.background }}>
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div
-          className="rounded-2xl p-5"
-          style={{
-            background: `linear-gradient(135deg, ${palette.primary} 0%, ${palette.secondary} 55%, ${palette.background} 100%)`,
-          }}
-        >
+    <div className="space-y-6">
+      <div className="jhtm-card p-6">
+        <div className="rounded-2xl bg-gradient-to-br from-navy via-sea to-cream p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-extrabold text-white">Attendance</h1>
@@ -162,8 +150,7 @@ export default function Attendance() {
               <button
                 type="button"
                 onClick={onGenerateQr}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
-                style={{ backgroundColor: palette.primary }}
+                className="jhtm-btn jhtm-btn-primary h-11"
               >
                 <QrCode size={18} aria-hidden="true" />
                 QR Check-in
@@ -173,19 +160,15 @@ export default function Attendance() {
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="jhtm-card p-4">
             <p className="text-sm font-semibold text-slate-600">Present</p>
-            <p className="mt-1 text-2xl font-extrabold" style={{ color: palette.primary }}>
-              {summary.present}
-            </p>
+            <p className="mt-1 text-2xl font-extrabold text-navy">{summary.present}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="jhtm-card p-4">
             <p className="text-sm font-semibold text-slate-600">Guests</p>
-            <p className="mt-1 text-2xl font-extrabold" style={{ color: palette.secondary }}>
-              {summary.guests}
-            </p>
+            <p className="mt-1 text-2xl font-extrabold text-sea-700">{summary.guests}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="jhtm-card p-4">
             <p className="text-sm font-semibold text-slate-600">Late</p>
             <p className="mt-1 text-2xl font-extrabold text-amber-700">{summary.late}</p>
           </div>
@@ -200,7 +183,7 @@ export default function Attendance() {
                   type="date"
                   value={filters.date}
                   onChange={(e) => setFilters((p) => ({ ...p, date: e.target.value }))}
-                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
                   aria-label="Filter by date"
                 />
                 {filters.date ? (
@@ -218,7 +201,7 @@ export default function Attendance() {
               <select
                 value={filters.eventId}
                 onChange={(e) => setFilters((p) => ({ ...p, eventId: e.target.value }))}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600 sm:w-auto"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500 sm:w-auto"
                 aria-label="Filter by event"
               >
                 <option value="">All events</option>
@@ -237,7 +220,7 @@ export default function Attendance() {
                 <input
                   value={filters.memberQuery}
                   onChange={(e) => setFilters((p) => ({ ...p, memberQuery: e.target.value }))}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
                   type="search"
                   placeholder="Search member or guest..."
                   aria-label="Search by member or guest"
@@ -336,7 +319,7 @@ export default function Attendance() {
                           <button
                             type="button"
                             onClick={() => setDeleteId(r.id)}
-                            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2"
                             aria-label="Remove attendance record"
                           >
                             Remove
@@ -459,7 +442,7 @@ function CheckinModal({
             <select
               value={eventId}
               onChange={(e) => setEventId(e.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
               required
             >
               {events.map((e) => (
@@ -474,7 +457,7 @@ function CheckinModal({
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as AttendanceStatus)}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
               required
             >
               <option value="present">Present</option>
@@ -520,7 +503,7 @@ function CheckinModal({
               onChange={(e) => setMemberName(e.target.value)}
               list="member-options"
               placeholder="Search member name"
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
             />
             <datalist id="member-options">
               {memberOptions.map((m) => (
@@ -537,7 +520,7 @@ function CheckinModal({
                 value={guest.fullName}
                 onChange={(e) => setGuest((p) => ({ ...p, fullName: e.target.value }))}
                 placeholder="Full name"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
               />
             </div>
             <div className="space-y-2">
@@ -546,7 +529,7 @@ function CheckinModal({
                 value={guest.phone ?? ''}
                 onChange={(e) => setGuest((p) => ({ ...p, phone: e.target.value }))}
                 placeholder="Phone"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
               />
             </div>
             <div className="space-y-2">
@@ -555,7 +538,7 @@ function CheckinModal({
                 value={guest.email ?? ''}
                 onChange={(e) => setGuest((p) => ({ ...p, email: e.target.value }))}
                 placeholder="Email"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-200 focus:ring-2 focus:ring-blue-600"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
               />
             </div>
           </div>
@@ -565,7 +548,7 @@ function CheckinModal({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2"
           >
             Cancel
           </button>
@@ -594,7 +577,7 @@ function CheckinModal({
               onCreate({ ...recordBase, guest: { ...guest, fullName: guest.fullName.trim() } });
               onOpenChange(false);
             }}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-emerald-600/60"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-emerald-600/60"
           >
             <CheckCircle2 size={18} aria-hidden="true" />
             Check in

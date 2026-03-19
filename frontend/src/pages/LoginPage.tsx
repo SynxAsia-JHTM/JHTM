@@ -10,24 +10,12 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { getApiBaseUrl } from '@/lib/config';
 import BackToHomeLink from '@/components/navigation/BackToHomeLink';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '@/lib/utils';
 
 type LoginRole = 'member' | 'admin' | 'guest';
 type LoginMethod = 'password' | 'otp';
-
-const palette = {
-  primary: '#355872',
-  secondary: '#7AAACE',
-  highlight: '#9CD5FF',
-  background: '#F7F8F0',
-};
 
 const LoginPage: React.FC = () => {
   const [identifier, setIdentifier] = useState('member@jhtmchurch.com');
@@ -207,15 +195,10 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen p-4" style={{ background: palette.background }}>
+    <div className="min-h-screen bg-cream p-4">
       <BackToHomeLink variant="floating" />
       <div className="mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-        <div
-          className="px-8 pb-6 pt-8"
-          style={{
-            background: `linear-gradient(135deg, ${palette.primary} 0%, ${palette.secondary} 55%, ${palette.background} 100%)`,
-          }}
-        >
+        <div className="bg-gradient-to-br from-navy via-sea to-cream px-8 pb-6 pt-8">
           <div className="text-center">
             <h1 className="text-2xl font-extrabold text-white">Welcome to JHTM</h1>
             <p className="mt-1 text-sm font-semibold text-white/85">Sign in to continue</p>
@@ -252,11 +235,8 @@ const LoginPage: React.FC = () => {
           {role === 'guest' ? (
             <div className="space-y-4">
               <div className="text-center py-4">
-                <div
-                  className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-                  style={{ backgroundColor: palette.highlight }}
-                >
-                  <UserPlus className="h-8 w-8 text-slate-900" />
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-sky">
+                  <UserPlus className="h-8 w-8 text-navy" />
                 </div>
                 <h2 className="text-lg font-semibold text-zinc-900">Join Our Church Family</h2>
                 <p className="mt-2 text-sm text-zinc-500">
@@ -264,11 +244,7 @@ const LoginPage: React.FC = () => {
                 </p>
               </div>
 
-              <Link
-                to="/register"
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
-                style={{ backgroundColor: palette.primary }}
-              >
+              <Link to="/register" className="jhtm-btn jhtm-btn-primary h-11 w-full shadow-sm">
                 <UserPlus size={20} />
                 Register as Guest
               </Link>
@@ -280,7 +256,6 @@ const LoginPage: React.FC = () => {
                     type="button"
                     onClick={() => setRole('member')}
                     className="font-semibold underline underline-offset-4"
-                    style={{ color: palette.primary }}
                   >
                     Sign in here
                   </button>
@@ -334,7 +309,7 @@ const LoginPage: React.FC = () => {
                     required
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:border-sky-200 focus:bg-white focus:ring-2 focus:ring-sky-600"
+                    className="jhtm-input pl-10"
                     placeholder={
                       role === 'admin' ? 'admin@jhtmchurch.com' : 'member@jhtmchurch.com'
                     }
@@ -354,7 +329,7 @@ const LoginPage: React.FC = () => {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:border-sky-200 focus:bg-white focus:ring-2 focus:ring-sky-600"
+                      className="jhtm-input pl-10"
                       placeholder="••••••••"
                     />
                   </div>
@@ -374,7 +349,7 @@ const LoginPage: React.FC = () => {
                       required
                       value={otp}
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:border-sky-200 focus:bg-white focus:ring-2 focus:ring-sky-600"
+                      className="jhtm-input pl-10"
                       placeholder="6-digit code"
                     />
                   </div>
@@ -390,14 +365,13 @@ const LoginPage: React.FC = () => {
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-navy focus:ring-sky-600"
+                    className="h-4 w-4 rounded border-slate-300 text-navy focus:ring-sea-500"
                   />
                   Remember me
                 </label>
                 <Link
                   to="/reset-password"
-                  className="text-sm font-semibold underline underline-offset-4"
-                  style={{ color: palette.primary }}
+                  className="text-sm font-semibold text-navy underline underline-offset-4"
                 >
                   Forgot password?
                 </Link>
@@ -414,10 +388,9 @@ const LoginPage: React.FC = () => {
                 type="submit"
                 disabled={isLoading}
                 className={cn(
-                  'flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white shadow-md transition-all duration-200 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50',
+                  'jhtm-btn jhtm-btn-primary h-11 w-full shadow-md transition-all duration-200 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50',
                   isLoading && 'animate-pulse'
                 )}
-                style={{ backgroundColor: palette.primary }}
               >
                 {isLoading
                   ? 'Signing in...'

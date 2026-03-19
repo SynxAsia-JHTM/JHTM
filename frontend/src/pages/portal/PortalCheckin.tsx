@@ -75,8 +75,8 @@ export default function PortalCheckin() {
         {/* Manual Check-in */}
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-blue-100 p-3">
-              <ClipboardCheck className="text-blue-600" size={24} />
+            <div className="rounded-xl bg-sky-100 p-3">
+              <ClipboardCheck className="text-navy" size={24} />
             </div>
             <div>
               <h3 className="font-bold text-slate-900">Manual Check-in</h3>
@@ -122,7 +122,7 @@ export default function PortalCheckin() {
                     <button
                       onClick={() => handleCheckIn(service.id)}
                       disabled={isLoading === service.id}
-                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                      className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600 disabled:opacity-50"
                     >
                       {isLoading === service.id ? 'Checking...' : 'Check In'}
                     </button>
