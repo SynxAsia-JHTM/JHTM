@@ -155,7 +155,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="rounded-full bg-navy px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="rounded-full bg-navy-900 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md hover:bg-navy-800"
             >
               Login
             </button>
@@ -165,7 +165,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="rounded-full bg-navy px-3 py-2 text-sm font-bold text-white shadow-sm"
+              className="rounded-full bg-navy-900 px-3 py-2 text-sm font-bold text-white shadow-sm"
             >
               Login
             </button>
