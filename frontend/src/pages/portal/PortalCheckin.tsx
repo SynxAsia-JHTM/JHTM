@@ -1,73 +1,120 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ClipboardCheck, QrCode, CheckCircle, Clock, MapPin, Calendar } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
+import { type AttendanceRecord, useAttendanceStore } from '@/stores/attendanceStore';
 
 type Service = {
   id: string;
   name: string;
-  date: string;
-  time: string;
+  startAt: string;
   location: string;
-  isCheckedIn: boolean;
-  canCheckIn: boolean;
 };
+
+function getCurrentMemberId(): string {
+  if (typeof window === 'undefined') return 'member';
+  try {
+    const raw = window.localStorage.getItem('user') || window.sessionStorage.getItem('user');
+    if (!raw) return 'member';
+    const parsed = JSON.parse(raw) as { email?: string };
+    return parsed.email?.trim() || 'member';
+  } catch {
+    return 'member';
+  }
+}
+
+function serviceEventId(service: Service) {
+  return `service:${service.id}:${service.startAt}`;
+}
+
+function toLocalDateLabel(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function toLocalTimeLabel(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function createStartAt(daysFromNow: number, hours: number, minutes: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromNow);
+  d.setHours(hours, minutes, 0, 0);
+  return d.toISOString();
+}
 
 const upcomingServices: Service[] = [
   {
-    id: '1',
+    id: 'sunday-worship',
     name: 'Sunday Worship',
-    date: 'March 23, 2026',
-    time: '9:00 AM',
+    startAt: createStartAt(1, 9, 0),
     location: 'Main Sanctuary',
-    isCheckedIn: false,
-    canCheckIn: true,
   },
   {
-    id: '2',
+    id: 'prayer-meeting',
     name: 'Prayer Meeting',
-    date: 'March 25, 2026',
-    time: '7:00 PM',
+    startAt: createStartAt(3, 19, 0),
     location: 'Fellowship Hall',
-    isCheckedIn: false,
-    canCheckIn: true,
   },
   {
-    id: '3',
+    id: 'youth-service',
     name: 'Youth Service',
-    date: 'March 27, 2026',
-    time: '5:00 PM',
+    startAt: createStartAt(5, 17, 0),
     location: 'Youth Center',
-    isCheckedIn: false,
-    canCheckIn: true,
   },
-];
-
-const recentCheckins = [
-  { id: 1, service: 'Sunday Worship', date: 'March 16, 2026', time: '9:15 AM' },
-  { id: 2, service: 'Prayer Meeting', date: 'March 11, 2026', time: '7:05 PM' },
-  { id: 3, service: 'Sunday Worship', date: 'March 9, 2026', time: '9:22 AM' },
-];
+].sort((a, b) => a.startAt.localeCompare(b.startAt));
 
 export default function PortalCheckin() {
-  const [services, setServices] = useState(upcomingServices);
+  const [services] = useState(upcomingServices);
   const [showQR, setShowQR] = useState(false);
-  const [isLoading, setIsLoading] = useState<string | null>(null);
 
-  const handleCheckIn = async (serviceId: string) => {
-    setIsLoading(serviceId);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+  const memberId = getCurrentMemberId();
+  const records = useAttendanceStore((s) => s.records);
+  const upsertRecord = useAttendanceStore((s) => s.upsertRecord);
 
-    setServices((prev) =>
-      prev.map((s) => (s.id === serviceId ? { ...s, isCheckedIn: true, canCheckIn: false } : s))
-    );
-    setIsLoading(null);
+  const memberServiceRecords = useMemo(() => {
+    return records
+      .filter((r) => r.attendeeType === 'member')
+      .filter((r) => (r.memberId ?? '') === memberId)
+      .filter((r) => r.eventId.startsWith('service:'))
+      .filter((r) => r.status !== 'removed')
+      .sort((a, b) => b.checkedInAt.localeCompare(a.checkedInAt));
+  }, [memberId, records]);
+
+  const recordForService = (service: Service) => {
+    const eid = serviceEventId(service);
+    return memberServiceRecords.find((r) => r.eventId === eid) ?? null;
+  };
+
+  const markJoined = (service: Service) => {
+    const now = new Date();
+    const start = new Date(service.startAt);
+    const isLate = now.getTime() > start.getTime() + 10 * 60_000;
+    const status: AttendanceRecord['status'] = isLate ? 'late' : 'present';
+    const eventId = serviceEventId(service);
+    const id = `self:${memberId}:${eventId}`;
+
+    upsertRecord({
+      id,
+      eventId,
+      attendeeType: 'member',
+      memberId,
+      status,
+      checkinMethod: 'manual',
+      checkedInAt: now.toISOString(),
+      checkedInBy: 'self',
+      notes: service.name,
+    });
   };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Service Check-in</h1>
-        <p className="mt-1 text-slate-500">Check in to upcoming services</p>
+        <p className="mt-1 text-slate-500">
+          Mark attendance for worship services and prayer meetings
+        </p>
       </div>
 
       {/* Quick Check-in Options */}
@@ -80,58 +127,73 @@ export default function PortalCheckin() {
             </div>
             <div>
               <h3 className="font-bold text-slate-900">Manual Check-in</h3>
-              <p className="text-sm text-slate-500">Tap to check in</p>
+              <p className="text-sm text-slate-500">Tap when you arrive (or mark early)</p>
             </div>
           </div>
 
           <div className="mt-4 space-y-3">
-            {services.map((service) => (
-              <div
-                key={service.id}
-                className={`rounded-xl border p-4 ${
-                  service.isCheckedIn
-                    ? 'border-emerald-200 bg-emerald-50'
-                    : 'border-slate-200 bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-slate-900">{service.name}</p>
-                    <div className="mt-1 flex items-center gap-3 text-sm text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <Calendar size={14} />
-                        {service.date}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock size={14} />
-                        {service.time}
-                      </span>
-                    </div>
-                    <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
-                      <MapPin size={14} />
-                      {service.location}
-                    </p>
-                  </div>
+            {services.map((service) =>
+              (() => {
+                const joined = recordForService(service);
+                const showEarly = new Date() < new Date(service.startAt);
+                return (
+                  <div
+                    key={service.id}
+                    className={`rounded-xl border p-4 ${
+                      joined ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-slate-900">{service.name}</p>
+                        <div className="mt-1 flex items-center gap-3 text-sm text-slate-500">
+                          <span className="flex items-center gap-1">
+                            <Calendar size={14} />
+                            {toLocalDateLabel(service.startAt)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock size={14} />
+                            {toLocalTimeLabel(service.startAt)}
+                          </span>
+                        </div>
+                        <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
+                          <MapPin size={14} />
+                          {service.location}
+                        </p>
+                      </div>
 
-                  {service.isCheckedIn ? (
-                    <div className="flex items-center gap-2 text-emerald-600">
-                      <CheckCircle size={20} />
-                      <span className="text-sm font-semibold">Checked In</span>
+                      {joined ? (
+                        <div className="flex items-center gap-2 text-emerald-600">
+                          <CheckCircle size={20} />
+                          <span className="text-sm font-semibold">Joined ✅</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {showEarly ? (
+                            <button
+                              type="button"
+                              onClick={() => markJoined(service)}
+                              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                              I'll Attend
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => markJoined(service)}
+                            className={cn(
+                              'rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600'
+                            )}
+                          >
+                            I'm Here 🙏
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  ) : service.canCheckIn ? (
-                    <button
-                      onClick={() => handleCheckIn(service.id)}
-                      disabled={isLoading === service.id}
-                      className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600 disabled:opacity-50"
-                    >
-                      {isLoading === service.id ? 'Checking...' : 'Check In'}
-                    </button>
-                  ) : (
-                    <span className="text-sm text-slate-400">Not available</span>
-                  )}
-                </div>
-              </div>
-            ))}
+                  </div>
+                );
+              })()
+            )}
           </div>
         </div>
 
@@ -191,9 +253,9 @@ export default function PortalCheckin() {
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h3 className="text-lg font-bold text-slate-900">Recent Check-ins</h3>
         <div className="mt-4 space-y-3">
-          {recentCheckins.map((checkin) => (
+          {memberServiceRecords.slice(0, 3).map((r) => (
             <div
-              key={checkin.id}
+              key={r.id}
               className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4"
             >
               <div className="flex items-center gap-3">
@@ -201,13 +263,24 @@ export default function PortalCheckin() {
                   <CheckCircle className="text-emerald-600" size={20} />
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-900">{checkin.service}</p>
-                  <p className="text-sm text-slate-500">{checkin.date}</p>
+                  <p className="font-semibold text-slate-900">{r.notes || 'Service'}</p>
+                  <p className="text-sm text-slate-500">{toLocalDateLabel(r.checkedInAt)}</p>
                 </div>
               </div>
-              <span className="text-sm font-medium text-slate-500">{checkin.time}</span>
+              <span className="text-sm font-medium text-slate-500">
+                {toLocalTimeLabel(r.checkedInAt)}
+              </span>
             </div>
           ))}
+
+          {memberServiceRecords.length === 0 ? (
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-slate-700">No check-ins yet</p>
+              <p className="mt-1 text-sm text-slate-600">
+                Tap “I'm Here 🙏” on a service to mark attendance.
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

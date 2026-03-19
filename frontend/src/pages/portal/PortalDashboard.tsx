@@ -3,6 +3,54 @@ import { useNavigate } from 'react-router-dom';
 import { CalendarClock, ClipboardCheck, Heart, Calendar, User } from 'lucide-react';
 
 import { usePrayerRequestsStore } from '@/stores/prayerRequestsStore';
+import { cn } from '@/lib/utils';
+import { type AttendanceRecord, useAttendanceStore } from '@/stores/attendanceStore';
+
+type PortalService = {
+  id: string;
+  name: string;
+  startAt: string;
+  location?: string;
+};
+
+function getCurrentMemberId(): string {
+  if (typeof window === 'undefined') return 'member';
+  try {
+    const raw = window.localStorage.getItem('user') || window.sessionStorage.getItem('user');
+    if (!raw) return 'member';
+    const parsed = JSON.parse(raw) as { email?: string };
+    return parsed.email?.trim() || 'member';
+  } catch {
+    return 'member';
+  }
+}
+
+function serviceEventId(service: PortalService) {
+  return `service:${service.id}:${service.startAt}`;
+}
+
+function toLocalDateLabel(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function toLocalTimeLabel(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function createStartAt(daysFromNow: number, hours: number, minutes: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromNow);
+  d.setHours(hours, minutes, 0, 0);
+  return d.toISOString();
+}
+
+function statusPill(status: AttendanceRecord['status']) {
+  if (status === 'present') return 'bg-emerald-100 text-emerald-700';
+  if (status === 'late') return 'bg-amber-100 text-amber-800';
+  return 'bg-slate-200 text-slate-700';
+}
 
 export default function PortalDashboard() {
   const navigate = useNavigate();
@@ -10,28 +58,94 @@ export default function PortalDashboard() {
   const loadMyPrayerRequests = usePrayerRequestsStore((s) => s.loadMyRequests);
   const myPrayerRequests = usePrayerRequestsStore((s) => s.myRequests);
 
+  const records = useAttendanceStore((s) => s.records);
+  const upsertRecord = useAttendanceStore((s) => s.upsertRecord);
+
   useEffect(() => {
     void loadMyPrayerRequests();
   }, [loadMyPrayerRequests]);
 
-  // Mock member data - in real app, this would come from API
   const memberName = 'John Smith';
-  const upcomingServices = [
-    { id: 1, name: 'Sunday Worship', date: 'March 23, 2026', time: '9:00 AM' },
-    { id: 2, name: 'Prayer Meeting', date: 'March 25, 2026', time: '7:00 PM' },
-  ];
+  const memberId = getCurrentMemberId();
+
+  const upcomingServices = useMemo<PortalService[]>(
+    () =>
+      [
+        {
+          id: 'sunday-worship',
+          name: 'Sunday Worship',
+          startAt: createStartAt(1, 9, 0),
+          location: 'Main Sanctuary',
+        },
+        {
+          id: 'prayer-meeting',
+          name: 'Prayer Meeting',
+          startAt: createStartAt(3, 19, 0),
+          location: 'Fellowship Hall',
+        },
+      ].sort((a, b) => a.startAt.localeCompare(b.startAt)),
+    []
+  );
+
+  const memberServiceRecords = useMemo(() => {
+    return records
+      .filter((r) => r.attendeeType === 'member')
+      .filter((r) => (r.memberId ?? '') === memberId)
+      .filter((r) => r.eventId.startsWith('service:'))
+      .filter((r) => r.status !== 'removed');
+  }, [memberId, records]);
+
+  const servicesAttended = useMemo(() => {
+    return memberServiceRecords.filter((r) => r.status === 'present' || r.status === 'late').length;
+  }, [memberServiceRecords]);
+
+  const checkinsThisMonth = useMemo(() => {
+    const now = new Date();
+    const m = now.getMonth();
+    const y = now.getFullYear();
+    return memberServiceRecords.filter((r) => {
+      const d = new Date(r.checkedInAt);
+      return d.getFullYear() === y && d.getMonth() === m;
+    }).length;
+  }, [memberServiceRecords]);
+
+  const recordForService = (service: PortalService) => {
+    const eid = serviceEventId(service);
+    return memberServiceRecords.find((r) => r.eventId === eid) ?? null;
+  };
+
+  const markJoined = (service: PortalService) => {
+    const now = new Date();
+    const start = new Date(service.startAt);
+    const isLate = now.getTime() > start.getTime() + 10 * 60_000;
+    const status: AttendanceRecord['status'] = isLate ? 'late' : 'present';
+    const eventId = serviceEventId(service);
+    const id = `self:${memberId}:${eventId}`;
+
+    upsertRecord({
+      id,
+      eventId,
+      attendeeType: 'member',
+      memberId,
+      status,
+      checkinMethod: 'manual',
+      checkedInAt: now.toISOString(),
+      checkedInBy: 'self',
+      notes: service.name,
+    });
+  };
 
   const stats = useMemo(
     () => [
       {
         label: 'Services Attended',
-        value: '12',
+        value: String(servicesAttended),
         icon: CalendarClock,
         color: 'bg-sky-100 text-navy',
       },
       {
         label: 'Check-ins This Month',
-        value: '3',
+        value: String(checkinsThisMonth),
         icon: ClipboardCheck,
         color: 'bg-sea-100 text-navy',
       },
@@ -48,7 +162,7 @@ export default function PortalDashboard() {
         color: 'bg-sky-100 text-navy',
       },
     ],
-    [myPrayerRequests.length]
+    [checkinsThisMonth, myPrayerRequests.length, servicesAttended]
   );
 
   return (
@@ -58,13 +172,42 @@ export default function PortalDashboard() {
         <h1 className="text-2xl font-bold">Welcome back, {memberName}!</h1>
         <p className="mt-1 text-white/80">We're glad to have you as part of JHTM Church.</p>
         <div className="mt-4 flex gap-3">
-          <button
-            onClick={() => navigate('/portal/checkin')}
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-navy hover:bg-sky-50"
-          >
-            <ClipboardCheck size={18} />
-            Check-in Now
-          </button>
+          {(() => {
+            const nextService = upcomingServices[0];
+            const joined = nextService ? recordForService(nextService) : null;
+            const showEarly = nextService ? new Date() < new Date(nextService.startAt) : false;
+            return (
+              <>
+                {showEarly ? (
+                  <button
+                    type="button"
+                    onClick={() => nextService && markJoined(nextService)}
+                    disabled={Boolean(joined)}
+                    className={cn(
+                      'inline-flex items-center gap-2 rounded-xl border border-white/40 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 disabled:opacity-60',
+                      joined && 'cursor-not-allowed'
+                    )}
+                  >
+                    <ClipboardCheck size={18} aria-hidden="true" />
+                    {joined ? 'Joined ✅' : "I'll Attend"}
+                  </button>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => nextService && markJoined(nextService)}
+                  disabled={Boolean(joined)}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-navy hover:bg-sky-50 disabled:opacity-60',
+                    joined && 'cursor-not-allowed'
+                  )}
+                >
+                  <ClipboardCheck size={18} aria-hidden="true" />
+                  {joined ? 'Joined ✅' : "I'm Here 🙏"}
+                </button>
+              </>
+            );
+          })()}
           <button
             onClick={() => navigate('/portal/prayers')}
             className="inline-flex items-center gap-2 rounded-xl border border-white/40 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
@@ -119,15 +262,18 @@ export default function PortalDashboard() {
           </button>
 
           <button
-            onClick={() => navigate('/portal/checkin')}
+            onClick={() => {
+              const nextService = upcomingServices[0];
+              if (nextService) markJoined(nextService);
+            }}
             className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 transition-colors hover:bg-slate-50"
           >
             <div className="rounded-lg bg-sky-100 p-2">
               <ClipboardCheck className="text-navy" size={20} />
             </div>
             <div className="text-left">
-              <p className="font-semibold text-slate-900">Check-in</p>
-              <p className="text-xs text-slate-500">Mark attendance</p>
+              <p className="font-semibold text-slate-900">I'm Here 🙏</p>
+              <p className="text-xs text-slate-500">Mark attendance for services</p>
             </div>
           </button>
 
@@ -213,25 +359,69 @@ export default function PortalDashboard() {
           </button>
         </div>
         <div className="mt-4 space-y-3">
-          {upcomingServices.map((service) => (
-            <div
-              key={service.id}
-              className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4"
-            >
-              <div>
-                <p className="font-semibold text-slate-900">{service.name}</p>
-                <p className="text-sm text-slate-500">
-                  {service.date} at {service.time}
-                </p>
-              </div>
-              <button
-                onClick={() => navigate('/portal/checkin')}
-                className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600"
+          {upcomingServices.map((service) => {
+            const joined = recordForService(service);
+            const showEarly = new Date() < new Date(service.startAt);
+            return (
+              <div
+                key={service.id}
+                className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4"
               >
-                Check-in
-              </button>
-            </div>
-          ))}
+                <div>
+                  <p className="font-semibold text-slate-900">{service.name}</p>
+                  <p className="text-sm text-slate-500">
+                    {toLocalDateLabel(service.startAt)} at {toLocalTimeLabel(service.startAt)}
+                  </p>
+                  {service.location ? (
+                    <p className="mt-1 text-xs font-semibold text-slate-500">{service.location}</p>
+                  ) : null}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {joined ? (
+                    <span
+                      className={cn(
+                        'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold',
+                        statusPill(joined.status)
+                      )}
+                    >
+                      {joined.status === 'late' ? 'Late' : 'Present'}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                      Not yet
+                    </span>
+                  )}
+
+                  {showEarly ? (
+                    <button
+                      type="button"
+                      onClick={() => markJoined(service)}
+                      disabled={Boolean(joined)}
+                      className={cn(
+                        'rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60',
+                        joined && 'cursor-not-allowed'
+                      )}
+                    >
+                      {joined ? 'Joined ✅' : "I'll Attend"}
+                    </button>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    onClick={() => markJoined(service)}
+                    disabled={Boolean(joined)}
+                    className={cn(
+                      'rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600 disabled:opacity-60',
+                      joined && 'cursor-not-allowed'
+                    )}
+                  >
+                    {joined ? 'Joined ✅' : "I'm Here 🙏"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -1,110 +1,76 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { CalendarClock, TrendingUp, Filter, Download } from 'lucide-react';
 
-type AttendanceRecord = {
-  id: string;
-  serviceName: string;
-  date: string;
-  time: string;
-  status: 'Present' | 'Late' | 'Absent';
-};
+import { cn } from '@/lib/utils';
+import { type AttendanceRecord, useAttendanceStore } from '@/stores/attendanceStore';
 
-const attendanceHistory: AttendanceRecord[] = [
-  {
-    id: '1',
-    serviceName: 'Sunday Worship',
-    date: 'March 16, 2026',
-    time: '9:15 AM',
-    status: 'Present',
-  },
-  {
-    id: '2',
-    serviceName: 'Prayer Meeting',
-    date: 'March 11, 2026',
-    time: '7:05 PM',
-    status: 'Present',
-  },
-  {
-    id: '3',
-    serviceName: 'Sunday Worship',
-    date: 'March 9, 2026',
-    time: '9:22 AM',
-    status: 'Late',
-  },
-  {
-    id: '4',
-    serviceName: 'Youth Service',
-    date: 'March 6, 2026',
-    time: '5:00 PM',
-    status: 'Present',
-  },
-  {
-    id: '5',
-    serviceName: 'Sunday Worship',
-    date: 'March 2, 2026',
-    time: '9:00 AM',
-    status: 'Present',
-  },
-  {
-    id: '6',
-    serviceName: 'Prayer Meeting',
-    date: 'Feb 25, 2026',
-    time: '7:00 PM',
-    status: 'Present',
-  },
-  {
-    id: '7',
-    serviceName: 'Sunday Worship',
-    date: 'Feb 23, 2026',
-    time: '9:10 AM',
-    status: 'Present',
-  },
-  { id: '8', serviceName: 'Youth Service', date: 'Feb 20, 2026', time: '5:15 PM', status: 'Late' },
-  {
-    id: '9',
-    serviceName: 'Sunday Worship',
-    date: 'Feb 16, 2026',
-    time: '9:00 AM',
-    status: 'Absent',
-  },
-  {
-    id: '10',
-    serviceName: 'Prayer Meeting',
-    date: 'Feb 11, 2026',
-    time: '7:00 PM',
-    status: 'Present',
-  },
-];
+type FilterValue = 'All' | 'Present' | 'Late' | 'Excused / Absent';
+
+function getCurrentMemberId(): string {
+  if (typeof window === 'undefined') return 'member';
+  try {
+    const raw = window.localStorage.getItem('user') || window.sessionStorage.getItem('user');
+    if (!raw) return 'member';
+    const parsed = JSON.parse(raw) as { email?: string };
+    return parsed.email?.trim() || 'member';
+  } catch {
+    return 'member';
+  }
+}
+
+function toLocalDateLabel(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function toLocalTimeLabel(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function toUiStatus(status: AttendanceRecord['status']): FilterValue {
+  if (status === 'present') return 'Present';
+  if (status === 'late') return 'Late';
+  return 'Excused / Absent';
+}
+
+function getStatusColor(status: AttendanceRecord['status']) {
+  if (status === 'present') return 'bg-emerald-100 text-emerald-700';
+  if (status === 'late') return 'bg-amber-100 text-amber-800';
+  return 'bg-slate-200 text-slate-700';
+}
 
 export default function PortalAttendance() {
-  const [filter, setFilter] = useState<'All' | 'Present' | 'Late' | 'Absent'>('All');
+  const [filter, setFilter] = useState<FilterValue>('All');
 
-  const filteredRecords =
-    filter === 'All' ? attendanceHistory : attendanceHistory.filter((r) => r.status === filter);
+  const memberId = getCurrentMemberId();
+  const records = useAttendanceStore((s) => s.records);
 
-  const stats = {
-    total: attendanceHistory.length,
-    present: attendanceHistory.filter((r) => r.status === 'Present').length,
-    late: attendanceHistory.filter((r) => r.status === 'Late').length,
-    absent: attendanceHistory.filter((r) => r.status === 'Absent').length,
-    rate: Math.round(
-      (attendanceHistory.filter((r) => r.status !== 'Absent').length / attendanceHistory.length) *
-        100
-    ),
-  };
+  const memberServiceRecords = useMemo(() => {
+    return records
+      .filter((r) => r.attendeeType === 'member')
+      .filter((r) => (r.memberId ?? '') === memberId)
+      .filter((r) => r.eventId.startsWith('service:'))
+      .filter((r) => r.status !== 'removed')
+      .sort((a, b) => b.checkedInAt.localeCompare(a.checkedInAt));
+  }, [memberId, records]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Present':
-        return 'bg-emerald-100 text-emerald-700';
-      case 'Late':
-        return 'bg-amber-100 text-amber-700';
-      case 'Absent':
-        return 'bg-red-100 text-red-700';
-      default:
-        return 'bg-slate-100 text-slate-700';
-    }
-  };
+  const filteredRecords = useMemo(() => {
+    if (filter === 'All') return memberServiceRecords;
+    return memberServiceRecords.filter((r) => toUiStatus(r.status) === filter);
+  }, [filter, memberServiceRecords]);
+
+  const stats = useMemo(() => {
+    const total = memberServiceRecords.length;
+    const present = memberServiceRecords.filter((r) => r.status === 'present').length;
+    const late = memberServiceRecords.filter((r) => r.status === 'late').length;
+    const excusedAbsent = memberServiceRecords.filter((r) => r.status === 'excused').length;
+    const attended = memberServiceRecords.filter(
+      (r) => r.status === 'present' || r.status === 'late'
+    ).length;
+    const rate = total ? Math.round((attended / total) * 100) : 0;
+    return { total, present, late, excusedAbsent, rate };
+  }, [memberServiceRecords]);
 
   return (
     <div className="space-y-6">
@@ -174,13 +140,14 @@ export default function PortalAttendance() {
       <div className="flex items-center gap-2">
         <Filter className="text-slate-400" size={20} />
         <span className="text-sm font-semibold text-slate-600">Filter:</span>
-        {(['All', 'Present', 'Late', 'Absent'] as const).map((f) => (
+        {(['All', 'Present', 'Late', 'Excused / Absent'] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
+            className={cn(
+              'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
               filter === f ? 'bg-navy text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+            )}
           >
             {f}
           </button>
@@ -212,26 +179,39 @@ export default function PortalAttendance() {
                 <tr key={record.id} className="transition-colors hover:bg-slate-50/60">
                   <td className="px-6 py-4">
                     <span className="text-sm font-semibold text-slate-900">
-                      {record.serviceName}
+                      {record.notes || 'Service'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm text-slate-600">{record.date}</span>
+                    <span className="text-sm text-slate-600">
+                      {toLocalDateLabel(record.checkedInAt)}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm text-slate-600">{record.time}</span>
+                    <span className="text-sm text-slate-600">
+                      {toLocalTimeLabel(record.checkedInAt)}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
                     <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(
-                        record.status
-                      )}`}
+                      className={cn(
+                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                        getStatusColor(record.status)
+                      )}
                     >
-                      {record.status}
+                      {toUiStatus(record.status)}
                     </span>
                   </td>
                 </tr>
               ))}
+
+              {filteredRecords.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-sm text-slate-500">
+                    No attendance records yet.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
