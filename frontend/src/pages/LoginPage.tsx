@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Mail, Lock, AlertCircle, Users, UserCog } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { getApiBaseUrl } from '@/lib/config';
@@ -15,6 +15,7 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('password123');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loginType, setLoginType] = useState<'admin' | 'member'>('admin');
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -35,7 +36,12 @@ const LoginPage: React.FC = () => {
     const signInOffline = () => {
       localStorage.setItem('token', 'mock-token');
       localStorage.setItem('user', JSON.stringify({ email: 'admin@jhtmchurch.com' }));
-      navigate('/dashboard');
+      // Redirect based on login type
+      if (loginType === 'member') {
+        navigate('/portal');
+      } else {
+        navigate('/dashboard');
+      }
     };
 
     try {
@@ -60,7 +66,12 @@ const LoginPage: React.FC = () => {
       if (response.ok) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/dashboard');
+        // Redirect based on login type
+        if (loginType === 'member') {
+          navigate('/portal');
+        } else {
+          navigate('/dashboard');
+        }
         return;
       }
 
@@ -89,11 +100,47 @@ const LoginPage: React.FC = () => {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-zinc-100">
         <div className="p-8">
           <div className="text-center mb-10">
-            <h1 className="text-2xl font-bold text-zinc-900 mb-2">JHTM Church Management System</h1>
-            <p className="text-zinc-500 text-sm">Sign in to manage your church operations</p>
+            <h1 className="text-2xl font-bold text-zinc-900 mb-2">
+              {loginType === 'admin' ? 'Church Administration' : 'Member Portal'}
+            </h1>
+            <p className="text-zinc-500 text-sm">
+              {loginType === 'admin' 
+                ? 'Sign in to manage your church operations' 
+                : 'Sign in to access your member dashboard'}
+            </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
+            {/* Login Type Selector */}
+            <div className="flex gap-2 p-1 bg-zinc-100 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setLoginType('admin')}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all',
+                  loginType === 'admin'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                )}
+              >
+                <UserCog size={16} />
+                Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginType('member')}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all',
+                  loginType === 'member'
+                    ? 'bg-white text-emerald-600 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                )}
+              >
+                <Users size={16} />
+                Member
+              </button>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-700 block">Email Address</label>
               <div className="relative">
@@ -146,6 +193,27 @@ const LoginPage: React.FC = () => {
               {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
+
+          <div className="mt-6 pt-6 border-t border-zinc-100">
+            <div className="text-center">
+              <p className="text-sm text-zinc-600">New to JHTM?</p>
+              <a
+                href="/register"
+                className="mt-2 inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                Register as a Guest →
+              </a>
+            </div>
+            <div className="mt-4 text-center">
+              <p className="text-sm text-zinc-600">Member?</p>
+              <a
+                href="/portal"
+                className="mt-2 inline-block text-sm font-medium text-emerald-600 hover:text-emerald-700"
+              >
+                Access Member Portal →
+              </a>
+            </div>
+          </div>
         </div>
 
         <div className="bg-zinc-50 p-4 text-center border-t border-zinc-100">
