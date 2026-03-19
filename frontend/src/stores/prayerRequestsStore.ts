@@ -34,6 +34,15 @@ type PrayerRequestsState = {
   }) => Promise<PrayerRequest>;
   loadMyRequests: (opts?: { force?: boolean }) => Promise<void>;
   loadAdminRequests: (opts?: { force?: boolean }) => Promise<void>;
+  patchAdminRequest: (
+    id: string,
+    payload: {
+      message?: string;
+      visibility?: PrayerVisibility;
+      isAnonymous?: boolean;
+    }
+  ) => Promise<AdminPrayerRequest | null>;
+  deleteAdminRequest: (id: string) => Promise<boolean>;
 };
 
 const storageKey = 'jhtm.prayerRequests.my.v1';
@@ -280,6 +289,69 @@ export const usePrayerRequestsStore = create<PrayerRequestsState>((set, get) => 
     }));
 
     set({ adminRequests: mapped, hasLoadedAdmin: true });
+  },
+  patchAdminRequest: async (id, payload) => {
+    const apiBase = getApiBaseUrl();
+    const token = getAuthToken();
+    if (!apiBase || !token) return null;
+
+    const response = await fetch(`${apiBase}/api/prayer-requests/${id}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        ...(payload.message !== undefined ? { message: payload.message } : {}),
+        ...(payload.visibility !== undefined ? { visibility: payload.visibility } : {}),
+        ...(payload.isAnonymous !== undefined ? { is_anonymous: payload.isAnonymous } : {}),
+      }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as {
+      id: string;
+      user_id: number;
+      message: string;
+      visibility: PrayerVisibility;
+      is_anonymous: boolean;
+      status: PrayerStatus;
+      created_at: string;
+    };
+
+    const updated: AdminPrayerRequest = {
+      id: data.id,
+      userId: data.user_id,
+      userEmail: get().adminRequests.find((r) => r.id === data.id)?.userEmail ?? null,
+      message: data.message,
+      visibility: data.visibility,
+      isAnonymous: data.is_anonymous,
+      status: data.status,
+      createdAt: data.created_at,
+      synced: true,
+    };
+
+    set({
+      adminRequests: get().adminRequests.map((r) => (r.id === id ? { ...r, ...updated } : r)),
+    });
+    return updated;
+  },
+  deleteAdminRequest: async (id) => {
+    const apiBase = getApiBaseUrl();
+    const token = getAuthToken();
+    if (!apiBase || !token) return false;
+
+    const response = await fetch(`${apiBase}/api/prayer-requests/${id}/`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok && response.status !== 204) return false;
+    set({ adminRequests: get().adminRequests.filter((r) => r.id !== id) });
+    return true;
   },
 }));
 
