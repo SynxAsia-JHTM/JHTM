@@ -5,7 +5,7 @@ import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/useToast';
 import { cn } from '@/lib/utils';
 import { loadMembers } from '@/lib/memberData';
-import { formatEventDateShort } from '@/lib/eventFormat';
+import { formatEventDateShort, formatEventTime } from '@/lib/eventFormat';
 import {
   createAttendanceId,
   createTokenId,
@@ -389,9 +389,8 @@ export default function Attendance() {
         open={qrOpen}
         onOpenChange={setQrOpen}
         qrUrl={activeQrUrl}
-        eventName={
-          selectedEvent?.name ??
-          eventOptions.find((e) => e.id === (filters.eventId || defaultEventId))?.name
+        event={
+          selectedEvent ?? eventOptions.find((e) => e.id === (filters.eventId || defaultEventId))
         }
       />
 
@@ -763,39 +762,94 @@ function QrModal({
   open,
   onOpenChange,
   qrUrl,
-  eventName,
+  event,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   qrUrl: string | null;
-  eventName?: string;
+  event?: { name: string; date: string; time: string; location: string };
 }) {
+  const toast = useToast();
+
+  const serviceLine = useMemo(() => {
+    if (!event) return null;
+    const date = new Date(`${event.date}T00:00:00`);
+    const dateLabel = new Intl.DateTimeFormat('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date);
+
+    const timeLabel = event.time?.includes(':') ? formatEventTime(event.time, 'en-US') : event.time;
+    return `${event.name} • ${dateLabel} • ${timeLabel} • ${event.location}`;
+  }, [event]);
+
+  const onCopy = async () => {
+    if (!qrUrl) return;
+    try {
+      await navigator.clipboard.writeText(qrUrl);
+      toast.success('Copied', 'Attendance link copied to clipboard.');
+    } catch {
+      try {
+        const el = document.createElement('textarea');
+        el.value = qrUrl;
+        el.style.position = 'fixed';
+        el.style.left = '-9999px';
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        toast.success('Copied', 'Attendance link copied to clipboard.');
+      } catch {
+        toast.error('Copy failed', 'Please copy the link manually.');
+      }
+    }
+  };
+
   return (
     <Modal
       open={open}
       onOpenChange={onOpenChange}
       title="Attend via QR"
-      description="Share this link or open it on a device to mark attendance."
+      description="Share this link or open it on a device to record attendance."
       className="max-w-xl"
     >
       <div className="space-y-4">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm font-semibold text-slate-900">{eventName ?? 'Service check-in'}</p>
-          <p className="mt-1 text-sm text-slate-600">Valid for 10 minutes</p>
+          <p className="text-sm font-semibold text-slate-900">{serviceLine ?? 'Service'}</p>
+          <p className="mt-1 text-sm text-slate-600">
+            This link is valid for 10 minutes to record attendance.
+          </p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <p className="text-sm font-semibold text-slate-700">Attendance Link</p>
-          <p className="mt-2 break-all rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-900">
-            {qrUrl ?? ''}
-          </p>
+
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              value={qrUrl ?? ''}
+              readOnly
+              aria-label="Attendance Link"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 outline-none"
+            />
+            <button
+              type="button"
+              onClick={onCopy}
+              disabled={!qrUrl}
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+              aria-label="Copy attendance link"
+            >
+              Copy
+            </button>
+          </div>
         </div>
 
         <div className="flex justify-end">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+            className="jhtm-btn jhtm-btn-primary h-11"
           >
             Done
           </button>
