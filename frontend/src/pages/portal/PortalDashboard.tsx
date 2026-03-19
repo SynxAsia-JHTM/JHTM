@@ -6,18 +6,7 @@ import { usePrayerRequestsStore } from '@/stores/prayerRequestsStore';
 import { cn } from '@/lib/utils';
 import { type AttendanceRecord, useAttendanceStore } from '@/stores/attendanceStore';
 import { type EventItem, useEventsStore } from '@/stores/eventsStore';
-
-function getCurrentMemberId(): string {
-  if (typeof window === 'undefined') return 'member';
-  try {
-    const raw = window.localStorage.getItem('user') || window.sessionStorage.getItem('user');
-    if (!raw) return 'member';
-    const parsed = JSON.parse(raw) as { email?: string };
-    return parsed.email?.trim() || 'member';
-  } catch {
-    return 'member';
-  }
-}
+import { getCurrentMemberId } from '@/lib/memberIdentity';
 
 function toLocalDateLabel(iso: string) {
   const d = new Date(iso);

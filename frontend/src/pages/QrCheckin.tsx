@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, QrCode, UserPlus2, Users2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -12,6 +12,39 @@ import {
 } from '@/stores/attendanceStore';
 import { useEventsStore } from '@/stores/eventsStore';
 
+function getAuthUser(): { email?: string; role?: string } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem('user') || window.sessionStorage.getItem('user');
+    if (!raw) return null;
+    return JSON.parse(raw) as { email?: string; role?: string };
+  } catch {
+    return null;
+  }
+}
+
+function computeStatus(startAtIso: string | null): AttendanceStatus {
+  if (!startAtIso) return 'present';
+  const now = Date.now();
+  const start = Date.parse(startAtIso);
+  if (!Number.isFinite(start)) return 'present';
+  const lateAfterMs = 10 * 60_000;
+  return now > start + lateAfterMs ? 'late' : 'present';
+}
+
+function toStartAtIso(date: string, time: string) {
+  const safeTime = time?.length ? time : '00:00';
+  const iso = `${date}T${safeTime}`;
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return null;
+  return d.toISOString();
+}
+
+function createGuestName() {
+  const suffix = Math.random().toString(16).slice(2, 6).toUpperCase();
+  return `Guest ${suffix}`;
+}
+
 export default function QrCheckin() {
   const toast = useToast();
   const navigate = useNavigate();
@@ -20,6 +53,8 @@ export default function QrCheckin() {
   const tokens = useAttendanceStore((s) => s.tokens);
   const markTokenUsed = useAttendanceStore((s) => s.markTokenUsed);
   const upsertRecord = useAttendanceStore((s) => s.upsertRecord);
+  const updateRecord = useAttendanceStore((s) => s.updateRecord);
+  const records = useAttendanceStore((s) => s.records);
 
   const members = useMemo(() => loadMembers(), []);
   const memberOptions = useMemo(() => members.map((m) => ({ id: m.id, name: m.name })), [members]);
@@ -35,7 +70,7 @@ export default function QrCheckin() {
 
   const tokenValid = useMemo(() => {
     if (!tokenObj) return false;
-    if (tokenObj.usedAt) return false;
+    if (tokenObj.scope === 'member' && tokenObj.usedAt) return false;
     return Date.parse(tokenObj.expiresAt) > Date.now();
   }, [tokenObj]);
 
@@ -44,12 +79,106 @@ export default function QrCheckin() {
     return events.find((e) => e.id === tokenObj.eventId) ?? null;
   }, [events, tokenObj]);
 
+  const startAtIso = useMemo(() => {
+    if (!event) return null;
+    return toStartAtIso(event.date, event.time);
+  }, [event]);
+
+  const authUser = useMemo(() => getAuthUser(), []);
+  const authMemberId = useMemo(() => {
+    const email = authUser?.email?.trim().toLowerCase();
+    if (!email) return null;
+    const match = members.find((m) => m.email?.trim().toLowerCase() === email);
+    return match?.id ?? null;
+  }, [authUser?.email, members]);
+
   const [tab, setTab] = useState<'member' | 'guest'>('member');
   const [memberName, setMemberName] = useState('');
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [status, setStatus] = useState<AttendanceStatus>('present');
+
+  const autoRanRef = useRef(false);
+
+  useEffect(() => {
+    if (!tokenObj || !tokenValid) return;
+    if (!event) return;
+    if (autoRanRef.current) return;
+
+    const computed = computeStatus(startAtIso);
+    setStatus(computed);
+
+    if (authMemberId) {
+      autoRanRef.current = true;
+      const existing = records.find(
+        (r) =>
+          r.attendeeType === 'member' &&
+          r.memberId === authMemberId &&
+          r.eventId === tokenObj.eventId
+      );
+
+      if (existing) {
+        updateRecord(existing.id, {
+          status: computed,
+          checkinMethod: 'qr',
+          checkedInAt: new Date().toISOString(),
+          checkedInBy: 'self',
+        });
+      } else {
+        upsertRecord({
+          id: createAttendanceId(),
+          eventId: tokenObj.eventId,
+          attendeeType: 'member',
+          memberId: authMemberId,
+          status: computed,
+          checkinMethod: 'qr',
+          checkedInAt: new Date().toISOString(),
+          checkedInBy: 'self',
+        });
+      }
+
+      if (tokenObj.scope === 'member') markTokenUsed(tokenObj.id);
+      toast.success('Checked in', 'Thank you for attending.');
+      window.setTimeout(() => navigate('/'), 700);
+      return;
+    }
+
+    if (!authUser) {
+      autoRanRef.current = true;
+      const guestFullName = createGuestName();
+      setTab('guest');
+      setGuestName(guestFullName);
+      upsertRecord({
+        id: createAttendanceId(),
+        eventId: tokenObj.eventId,
+        attendeeType: 'guest',
+        guest: {
+          fullName: guestFullName,
+        },
+        status: computed,
+        checkinMethod: 'qr',
+        checkedInAt: new Date().toISOString(),
+        checkedInBy: 'self',
+        notes: 'QR guest check-in',
+      });
+      toast.success('Checked in', 'Welcome!');
+      window.setTimeout(() => navigate('/'), 700);
+    }
+  }, [
+    authMemberId,
+    authUser,
+    event,
+    markTokenUsed,
+    navigate,
+    records,
+    startAtIso,
+    toast,
+    tokenObj,
+    tokenValid,
+    updateRecord,
+    upsertRecord,
+  ]);
 
   const canSubmitMember = Boolean(memberByName.get(memberName.trim().toLowerCase()));
   const canSubmitGuest = Boolean(guestName.trim());
@@ -134,11 +263,14 @@ export default function QrCheckin() {
                 onChange={(e) => setStatus(e.target.value as AttendanceStatus)}
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
               >
-                <option value="expected">Expected / Early</option>
-                <option value="present">Present</option>
+                <option value="present">I'm Here 🙏</option>
                 <option value="late">Late</option>
+                <option value="expected">Expected / Early</option>
                 <option value="excused">Excused</option>
               </select>
+              <p className="text-xs text-slate-500">
+                QR scans automatically mark you as Present or Late based on service start time.
+              </p>
             </div>
 
             {tab === 'member' ? (
@@ -202,16 +334,32 @@ export default function QrCheckin() {
                 if (tab === 'member') {
                   const memberId = memberByName.get(memberName.trim().toLowerCase());
                   if (!memberId) return;
-                  upsertRecord({
-                    id: createAttendanceId(),
-                    eventId,
-                    attendeeType: 'member',
-                    memberId,
-                    status,
-                    checkinMethod: 'qr',
-                    checkedInAt,
-                    checkedInBy: 'self',
-                  });
+
+                  const existing = records.find(
+                    (r) =>
+                      r.attendeeType === 'member' &&
+                      r.memberId === memberId &&
+                      r.eventId === eventId
+                  );
+                  if (existing) {
+                    updateRecord(existing.id, {
+                      status,
+                      checkinMethod: 'qr',
+                      checkedInAt,
+                      checkedInBy: 'self',
+                    });
+                  } else {
+                    upsertRecord({
+                      id: createAttendanceId(),
+                      eventId,
+                      attendeeType: 'member',
+                      memberId,
+                      status,
+                      checkinMethod: 'qr',
+                      checkedInAt,
+                      checkedInBy: 'self',
+                    });
+                  }
                 } else {
                   upsertRecord({
                     id: createAttendanceId(),
@@ -229,7 +377,7 @@ export default function QrCheckin() {
                   });
                 }
 
-                markTokenUsed(tokenObj.id);
+                if (tokenObj.scope === 'member') markTokenUsed(tokenObj.id);
                 toast.success('Checked in', 'Thank you for attending.');
                 window.setTimeout(() => navigate('/'), 700);
               }}

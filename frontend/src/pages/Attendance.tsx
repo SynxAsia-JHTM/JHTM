@@ -26,11 +26,21 @@ function isSameDay(dateIso: string, filterIso: string) {
   return dateIso === filterIso;
 }
 
-function getAttendeeName(record: AttendanceRecord, membersById: Map<string, { name: string }>) {
-  if (record.attendeeType === 'member' && record.memberId) {
-    return membersById.get(record.memberId)?.name ?? 'Member';
+function getAttendeeName(
+  record: AttendanceRecord,
+  membersById: Map<string, { name: string; email?: string }>
+) {
+  if (record.attendeeType === 'guest') return record.guest?.fullName ?? 'Guest';
+  if (!record.memberId) return 'Member';
+
+  const byId = membersById.get(record.memberId)?.name;
+  if (byId) return byId;
+
+  for (const m of membersById.values()) {
+    if (m.email?.trim().toLowerCase() === record.memberId.trim().toLowerCase()) return m.name;
   }
-  return record.guest?.fullName ?? 'Guest';
+
+  return record.memberId;
 }
 
 function statusPill(status: AttendanceStatus) {
@@ -67,7 +77,7 @@ export default function Attendance() {
 
   const members = useMemo(() => loadMembers(), []);
   const membersById = useMemo(
-    () => new Map(members.map((m) => [m.id, { name: m.name }])),
+    () => new Map(members.map((m) => [m.id, { name: m.name, email: m.email }])),
     [members]
   );
 

@@ -11,20 +11,9 @@ import {
 } from '@/stores/attendanceStore';
 import { useEventRegistrationsStore } from '@/stores/eventRegistrationsStore';
 import { type EventItem, useEventsStore } from '@/stores/eventsStore';
+import { getCurrentMemberId } from '@/lib/memberIdentity';
 
 type EventKind = 'service' | 'registration' | 'informational';
-
-function getCurrentMemberId(): string {
-  if (typeof window === 'undefined') return 'member';
-  try {
-    const raw = window.localStorage.getItem('user') || window.sessionStorage.getItem('user');
-    if (!raw) return 'member';
-    const parsed = JSON.parse(raw) as { email?: string };
-    return parsed.email?.trim() || 'member';
-  } catch {
-    return 'member';
-  }
-}
 
 function eventStartAt(event: EventItem): string {
   const time = event.time?.length ? event.time : '00:00';
