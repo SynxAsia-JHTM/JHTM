@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Mail } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import BackToHomeLink from '@/components/navigation/BackToHomeLink';
 import { useToast } from '@/components/ui/useToast';
 
@@ -11,7 +12,15 @@ export default function ResetPassword() {
   return (
     <div className="min-h-screen bg-cream p-4">
       <BackToHomeLink variant="floating" />
-      <div className="mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+      <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <Link
+          to="/login"
+          aria-label="Back to login"
+          title="Back to login"
+          className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2"
+        >
+          <ArrowLeft size={16} aria-hidden="true" />
+        </Link>
         <div className="bg-gradient-to-br from-navy via-sea to-cream px-8 pb-6 pt-8">
           <h1 className="text-center text-2xl font-extrabold text-white">Reset password</h1>
           <p className="mt-1 text-center text-sm font-semibold text-white/85">
