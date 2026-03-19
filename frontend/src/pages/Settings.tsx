@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Settings2,
   Building2,
@@ -36,7 +37,14 @@ type Tab =
 
 export default function Settings() {
   const toast = useToast();
-  const { settings, hasLoadedSettings, loadSettings, updateSettings } = useSettingsStore();
+  const {
+    settings,
+    hasLoadedSettings,
+    isLoadingSettings,
+    settingsError,
+    loadSettings,
+    updateSettings,
+  } = useSettingsStore();
 
   const [activeTab, setActiveTab] = useState<Tab>('church');
   const [formData, setFormData] = useState<Partial<SystemSettings>>({});
@@ -71,8 +79,57 @@ export default function Settings() {
     }
   };
 
-  if (!hasLoadedSettings) {
+  const tokenPresent =
+    typeof window !== 'undefined' &&
+    Boolean(window.localStorage.getItem('token') || window.sessionStorage.getItem('token'));
+
+  const shouldShowLoginLink =
+    !tokenPresent || Boolean(settingsError && /unauthorized|sign in|log in/i.test(settingsError));
+
+  if (isLoadingSettings && !hasLoadedSettings) {
     return <div className="p-8 text-center text-sm text-slate-500">Loading settings...</div>;
+  }
+
+  if (hasLoadedSettings && !settings) {
+    return (
+      <div className="space-y-6 pb-20">
+        <div className="rounded-2xl bg-gradient-to-br from-navy via-sea to-cream p-6 text-white">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-extrabold">Settings</h1>
+              <p className="mt-1 text-sm font-semibold text-white/85">Unable to load settings.</p>
+            </div>
+            <div className="rounded-2xl bg-white/15 p-3 ring-1 ring-white/20">
+              <Settings2 size={22} aria-hidden="true" />
+            </div>
+          </div>
+        </div>
+
+        <div className="jhtm-card p-6">
+          <h2 className="text-lg font-bold text-slate-900">We couldn’t load this page</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            {settingsError || 'An unknown error occurred while loading settings.'}
+          </p>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => loadSettings({ force: true })}
+              className={cn('jhtm-btn jhtm-btn-primary', isLoadingSettings && 'animate-pulse')}
+              disabled={isLoadingSettings}
+            >
+              {isLoadingSettings ? 'Retrying...' : 'Retry'}
+            </button>
+
+            {shouldShowLoginLink && (
+              <Link to="/login" className="jhtm-btn jhtm-btn-secondary text-center">
+                Go to Login
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
