@@ -1,32 +1,42 @@
 import React from 'react';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 
 import Attendance from '@/pages/Attendance';
 import { ToastProvider } from '@/components/ui/ToastProvider';
-import { useAttendanceStore } from '@/stores/attendanceStore';
 import { useEventsStore } from '@/stores/eventsStore';
+import { useMembersStore } from '@/stores/membersStore';
+
+vi.mock('@/lib/apiClient', () => ({
+  apiRequest: async (path: string) => {
+    if (path.startsWith('/api/attendance/')) {
+      return {
+        ok: true,
+        data: {
+          results: [
+            {
+              id: 'att1',
+              event_id: 'svc1',
+              attendee_type: 'member',
+              member_id: 'm1',
+              member_name: 'Alice Johnson',
+              status: 'present',
+              checkin_method: 'manual',
+              checked_in_at: new Date('2026-03-22T10:05:00.000Z').toISOString(),
+              notes: 'Front row',
+            },
+          ],
+        },
+      } as const;
+    }
+    return { ok: false, status: 404, detail: 'not mocked' } as const;
+  },
+}));
 
 describe('Admin attendance monitoring', () => {
   beforeEach(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
-    window.localStorage.setItem(
-      'jhtm.members.v1',
-      JSON.stringify([
-        {
-          id: 'm1',
-          name: 'Alice Johnson',
-          email: 'alice@example.com',
-          phone: '123',
-          gender: 'Female',
-          category: 'Member',
-          birthdate: '1990-01-01',
-          ministry: 'Choir',
-          status: 'Active',
-        },
-      ])
-    );
 
     useEventsStore.setState({
       events: [
@@ -40,23 +50,27 @@ describe('Admin attendance monitoring', () => {
           category: 'Service',
         },
       ],
+      hasLoaded: true,
+      isLoading: false,
+      error: null,
     });
 
-    useAttendanceStore.setState({
-      records: [
+    useMembersStore.setState({
+      me: null,
+      members: [
         {
-          id: 'att1',
-          eventId: 'svc1',
-          attendeeType: 'member',
-          memberId: 'm1',
-          status: 'present',
-          checkinMethod: 'manual',
-          checkedInAt: new Date('2026-03-22T10:05:00.000Z').toISOString(),
-          checkedInBy: 'self',
-          notes: 'Front row',
+          id: 'm1',
+          user_id: 1,
+          name: 'Alice Johnson',
+          email: 'alice@example.com',
+          status: 'Active',
         },
       ],
-      tokens: [],
+      hasLoadedMe: true,
+      hasLoadedMembers: true,
+      isLoadingMe: false,
+      isLoadingMembers: false,
+      error: null,
     });
   });
 
@@ -64,7 +78,7 @@ describe('Admin attendance monitoring', () => {
     cleanup();
   });
 
-  it('renders record with required columns and status label', () => {
+  it('renders record with required columns and status label', async () => {
     render(
       <ToastProvider>
         <Attendance />
@@ -76,7 +90,7 @@ describe('Admin attendance monitoring', () => {
     expect(screen.getByText('Check-in Method')).toBeInTheDocument();
     expect(screen.getByText('Notes')).toBeInTheDocument();
 
-    expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
+    expect(await screen.findByText('Alice Johnson')).toBeInTheDocument();
     expect(screen.getByText(/I'm Here/i)).toBeInTheDocument();
     expect(screen.getByText('manual')).toBeInTheDocument();
     expect(screen.getByText('Front row')).toBeInTheDocument();

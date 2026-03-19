@@ -1,17 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, Clock, MapPin, Users, ArrowRight, CheckCircle } from 'lucide-react';
 
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/useToast';
 import { cn } from '@/lib/utils';
-import {
-  createAttendanceId,
-  type AttendanceRecord,
-  useAttendanceStore,
-} from '@/stores/attendanceStore';
-import { useEventRegistrationsStore } from '@/stores/eventRegistrationsStore';
+import { type AttendanceRecord, useAttendanceStore } from '@/stores/attendanceStore';
 import { type EventItem, useEventsStore } from '@/stores/eventsStore';
-import { getCurrentMemberId } from '@/lib/memberIdentity';
 
 type EventKind = 'service' | 'registration' | 'informational';
 
@@ -66,20 +60,18 @@ function statusPill(status: AttendanceRecord['status']) {
 
 export default function PortalEvents() {
   const toast = useToast();
-  const memberId = getCurrentMemberId();
   const [filter, setFilter] = useState<string>('All');
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
 
-  const events = useEventsStore((s) => s.events);
+  const { events, loadEvents, registerForEvent, leaveEvent } = useEventsStore();
 
-  const attendanceRecords = useAttendanceStore((s) => s.records);
-  const upsertAttendance = useAttendanceStore((s) => s.upsertRecord);
+  const { myRecords, loadMine, selfAttend } = useAttendanceStore();
 
-  const registrations = useEventRegistrationsStore((s) => s.registrations);
-  const joinEvent = useEventRegistrationsStore((s) => s.joinEvent);
-  const leaveEvent = useEventRegistrationsStore((s) => s.leaveEvent);
-  const countForEvent = useEventRegistrationsStore((s) => s.countForEvent);
+  useEffect(() => {
+    void loadEvents();
+    void loadMine();
+  }, [loadEvents, loadMine]);
 
   const upcoming = useMemo(() => {
     const nowIso = new Date().toISOString();
@@ -105,33 +97,16 @@ export default function PortalEvents() {
     return upcoming.find((e) => e.id === activeEventId) ?? null;
   }, [activeEventId, upcoming]);
 
-  const attendanceEventId = (event: EventItem) => {
-    return event.id;
-  };
-
   const attendanceForEvent = (event: EventItem) => {
-    const eid = attendanceEventId(event);
-    return (
-      attendanceRecords
-        .filter((r) => r.attendeeType === 'member')
-        .filter((r) => (r.memberId ?? '') === memberId)
-        .find((r) => r.eventId === eid) ?? null
-    );
-  };
-
-  const isRegistered = (event: EventItem) => {
-    return registrations.some((r) => r.eventId === event.id && r.memberId === memberId);
+    return myRecords.find((r) => r.eventId === event.id) ?? null;
   };
 
   const maxSlotsForEvent = (event: EventItem) => {
-    if (typeof event.maxSlots === 'number' && event.maxSlots > 0) return event.maxSlots;
-    return 50;
+    return typeof event.maxSlots === 'number' ? event.maxSlots : null;
   };
 
   const remainingSpots = (event: EventItem) => {
-    const max = maxSlotsForEvent(event);
-    const used = countForEvent(event.id);
-    return Math.max(0, max - used);
+    return typeof event.remainingSlots === 'number' ? event.remainingSlots : null;
   };
 
   const openDetails = (id: string) => {
@@ -142,39 +117,31 @@ export default function PortalEvents() {
   const onJoinService = (event: EventItem) => {
     const existing = attendanceForEvent(event);
     if (existing) return;
-    const now = new Date();
-    const start = new Date(eventStartAt(event));
-    const isLate = now.getTime() > start.getTime() + 10 * 60_000;
-    const status: AttendanceRecord['status'] = isLate ? 'late' : 'present';
 
-    upsertAttendance({
-      id: createAttendanceId(),
-      eventId: attendanceEventId(event),
-      attendeeType: 'member',
-      memberId,
-      status,
-      checkinMethod: 'manual',
-      checkedInAt: now.toISOString(),
-      checkedInBy: 'self',
-      notes: event.name,
+    void selfAttend({ eventId: event.id, status: 'present' }).then((ok) => {
+      if (ok) toast.success('Joined', 'Attendance has been recorded.');
+      else toast.error('Unable to record', 'Please try again.');
     });
-    toast.success('Joined', 'Attendance has been recorded.');
   };
 
   const onJoinRegistration = (event: EventItem) => {
-    if (isRegistered(event)) return;
-    if (remainingSpots(event) <= 0) {
+    if (event.isRegistered) return;
+    if ((remainingSpots(event) ?? 1) <= 0) {
       toast.error('Full', 'No remaining slots for this event.');
       return;
     }
-    const ok = joinEvent({ eventId: event.id, memberId });
-    if (ok) toast.success('Joined', 'You have joined this event.');
+    void registerForEvent(event.id).then((ok) => {
+      if (ok) toast.success('Joined', 'You have joined this event.');
+      else toast.error('Join failed', 'Please try again.');
+    });
   };
 
   const onLeaveRegistration = (event: EventItem) => {
-    if (!isRegistered(event)) return;
-    leaveEvent({ eventId: event.id, memberId });
-    toast.info('Left event', 'You have left this event.');
+    if (!event.isRegistered) return;
+    void leaveEvent(event.id).then((ok) => {
+      if (ok) toast.info('Left event', 'You have left this event.');
+      else toast.error('Leave failed', 'Please try again.');
+    });
   };
 
   return (
@@ -208,7 +175,7 @@ export default function PortalEvents() {
         <div className="mt-4 space-y-3">
           {upcoming
             .filter((e) => kindForEvent(e) === 'registration')
-            .filter((e) => isRegistered(e))
+            .filter((e) => e.isRegistered)
             .map((event) => (
               <div
                 key={event.id}
@@ -234,7 +201,7 @@ export default function PortalEvents() {
                 </button>
               </div>
             ))}
-          {upcoming.filter((e) => kindForEvent(e) === 'registration').filter((e) => isRegistered(e))
+          {upcoming.filter((e) => kindForEvent(e) === 'registration').filter((e) => e.isRegistered)
             .length === 0 && (
             <p className="text-slate-500">You haven't registered for any events yet.</p>
           )}
@@ -250,7 +217,8 @@ export default function PortalEvents() {
               const category = categoryLabel(event);
               const kind = kindForEvent(event);
               const joinedAttendance = kind === 'service' ? attendanceForEvent(event) : null;
-              const joinedRegistration = kind === 'registration' ? isRegistered(event) : false;
+              const joinedRegistration =
+                kind === 'registration' ? Boolean(event.isRegistered) : false;
               const maxSlots = kind === 'registration' ? maxSlotsForEvent(event) : null;
               const remaining = kind === 'registration' ? remainingSpots(event) : null;
               const isFull = kind === 'registration' ? remaining === 0 : false;
@@ -309,7 +277,9 @@ export default function PortalEvents() {
                       <div className="flex items-center gap-2 text-sm text-slate-500">
                         <Users size={16} aria-hidden="true" />
                         <span>
-                          {remaining} / {maxSlots} spots left
+                          {typeof remaining === 'number' && typeof maxSlots === 'number'
+                            ? `${remaining} / ${maxSlots} spots left`
+                            : 'Registration'}
                         </span>
                       </div>
                     ) : (

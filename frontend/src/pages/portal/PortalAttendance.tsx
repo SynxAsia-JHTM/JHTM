@@ -1,10 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CalendarClock, TrendingUp, Filter, Download } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { type AttendanceRecord, useAttendanceStore } from '@/stores/attendanceStore';
 import { type EventItem, useEventsStore } from '@/stores/eventsStore';
-import { getCurrentMemberId } from '@/lib/memberIdentity';
 
 type FilterValue = 'All' | 'Present' | 'Late' | 'Excused / Absent';
 
@@ -49,9 +48,13 @@ function isServiceLike(event: EventItem) {
 export default function PortalAttendance() {
   const [filter, setFilter] = useState<FilterValue>('All');
 
-  const memberId = getCurrentMemberId();
-  const records = useAttendanceStore((s) => s.records);
-  const events = useEventsStore((s) => s.events);
+  const { myRecords, loadMine } = useAttendanceStore();
+  const { events, loadEvents } = useEventsStore();
+
+  useEffect(() => {
+    void loadEvents();
+    void loadMine();
+  }, [loadEvents, loadMine]);
 
   const serviceEventIds = useMemo(() => {
     return new Set(events.filter((e) => isServiceLike(e)).map((e) => e.id));
@@ -62,13 +65,11 @@ export default function PortalAttendance() {
   }, [events]);
 
   const memberServiceRecords = useMemo(() => {
-    return records
-      .filter((r) => r.attendeeType === 'member')
-      .filter((r) => (r.memberId ?? '') === memberId)
+    return myRecords
       .filter((r) => serviceEventIds.has(r.eventId))
       .filter((r) => r.status !== 'removed')
       .sort((a, b) => b.checkedInAt.localeCompare(a.checkedInAt));
-  }, [memberId, records, serviceEventIds]);
+  }, [myRecords, serviceEventIds]);
 
   const filteredRecords = useMemo(() => {
     if (filter === 'All') return memberServiceRecords;

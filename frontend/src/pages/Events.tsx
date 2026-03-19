@@ -4,12 +4,7 @@ import { ArrowDown, ArrowUp, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/useToast';
 import { cn } from '@/lib/utils';
-import {
-  createEventId,
-  type EventItem,
-  type EventStatus,
-  useEventsStore,
-} from '@/stores/eventsStore';
+import { type EventItem, type EventStatus, useEventsStore } from '@/stores/eventsStore';
 
 type SortDirection = 'asc' | 'desc';
 type SortKey = keyof Pick<EventItem, 'name' | 'date' | 'time' | 'location' | 'status'>;
@@ -75,10 +70,11 @@ function isEmptyErrors(errors: Record<string, string | undefined>) {
 
 export default function Events() {
   const toast = useToast();
-  const events = useEventsStore((s) => s.events);
-  const addEvent = useEventsStore((s) => s.addEvent);
-  const updateEvent = useEventsStore((s) => s.updateEvent);
-  const deleteEvent = useEventsStore((s) => s.deleteEvent);
+  const { events, loadEvents, createEvent, updateEvent, deleteEvent } = useEventsStore();
+
+  useEffect(() => {
+    void loadEvents();
+  }, [loadEvents]);
 
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('date');
@@ -284,8 +280,9 @@ export default function Events() {
           }
         }}
         onCreate={async (payload) => {
-          addEvent({ id: createEventId(), ...payload });
-          toast.success('Event created', 'Your event is now visible on the homepage.');
+          const id = await createEvent(payload as unknown as Omit<EventItem, 'id'>);
+          if (id) toast.success('Event created', 'Your event is now visible on the homepage.');
+          else toast.error('Create failed', 'Please try again.');
         }}
       />
 
@@ -298,8 +295,9 @@ export default function Events() {
         event={editingEvent}
         onSave={async (payload) => {
           if (!editEventId) return;
-          updateEvent(editEventId, payload);
-          toast.success('Event updated');
+          const ok = await updateEvent(editEventId, payload);
+          if (ok) toast.success('Event updated');
+          else toast.error('Update failed', 'Please try again.');
         }}
       />
 
@@ -311,9 +309,11 @@ export default function Events() {
         itemLabel={deletingEvent?.name ?? 'this event'}
         onConfirm={() => {
           if (!deleteEventId) return;
-          deleteEvent(deleteEventId);
-          setDeleteEventId(null);
-          toast.success('Event deleted');
+          void deleteEvent(deleteEventId).then((ok) => {
+            if (ok) toast.success('Event deleted');
+            else toast.error('Delete failed', 'Please try again.');
+            setDeleteEventId(null);
+          });
         }}
       />
     </div>

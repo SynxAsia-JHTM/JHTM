@@ -1,10 +1,10 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, CalendarDays, Clock, MapPin, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/useToast';
 import { formatEventDateLong, formatEventTime } from '@/lib/eventFormat';
-import { createAttendanceId, useAttendanceStore } from '@/stores/attendanceStore';
+import { useAttendanceStore } from '@/stores/attendanceStore';
 import { useEventsStore } from '@/stores/eventsStore';
 
 type SectionKey = 'home' | 'about' | 'ministries' | 'events' | 'contact';
@@ -79,8 +79,12 @@ export default function Home() {
   const [guestName, setGuestName] = useState('');
   const [guestEventId, setGuestEventId] = useState('');
 
-  const adminEvents = useEventsStore((s) => s.events);
-  const addAttendance = useAttendanceStore((s) => s.addRecord);
+  const { events: adminEvents, loadEvents } = useEventsStore();
+  const submitGuest = useAttendanceStore((s) => s.submitGuest);
+
+  useEffect(() => {
+    void loadEvents();
+  }, [loadEvents]);
 
   const upcomingEvents: PublicEventItem[] = useMemo(() => {
     const now = new Date();
@@ -450,18 +454,14 @@ export default function Home() {
               disabled={!guestEventId || !guestName.trim()}
               onClick={() => {
                 if (!guestEventId || !guestName.trim()) return;
-                addAttendance({
-                  id: createAttendanceId(),
+                void submitGuest({
                   eventId: guestEventId,
-                  attendeeType: 'guest',
-                  guest: { fullName: guestName.trim() },
-                  status: 'present',
-                  checkinMethod: 'manual',
-                  checkedInAt: new Date().toISOString(),
-                  checkedInBy: 'self',
+                  guestFullName: guestName.trim(),
+                }).then((ok) => {
+                  if (ok) toast.success('Recorded', 'Thanks for joining us today.');
+                  else toast.error('Unable to record', 'Please try again.');
+                  setGuestModalOpen(false);
                 });
-                toast.success('Checked in', 'Thanks for joining us today.');
-                setGuestModalOpen(false);
               }}
               className="inline-flex h-11 items-center justify-center rounded-xl bg-navy px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-navy-600 disabled:cursor-not-allowed disabled:opacity-60"
             >

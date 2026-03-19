@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { apiRequest } from '@/lib/apiClient';
+
 export type EventStatus = 'Scheduled' | 'Planned' | 'Completed' | 'Cancelled';
 
 export type EventItem = {
@@ -9,153 +11,163 @@ export type EventItem = {
   time: string;
   location: string;
   status: EventStatus;
-  category?: string;
-  speaker?: string;
+  category?: string | null;
+  speaker?: string | null;
   requiresRegistration?: boolean;
-  maxSlots?: number;
+  maxSlots?: number | null;
+  registrationsCount?: number;
+  remainingSlots?: number | null;
+  isRegistered?: boolean;
 };
 
 type EventsState = {
   events: EventItem[];
-  setEvents: (events: EventItem[]) => void;
-  replaceEventsFromSync: (events: EventItem[]) => void;
-  addEvent: (event: EventItem) => void;
-  updateEvent: (id: string, updates: Partial<EventItem>) => void;
-  deleteEvent: (id: string) => void;
+  hasLoaded: boolean;
+  isLoading: boolean;
+  error: string | null;
+  loadEvents: (opts?: { force?: boolean }) => Promise<void>;
+  createEvent: (payload: Omit<EventItem, 'id'>) => Promise<string | null>;
+  updateEvent: (id: string, updates: Partial<EventItem>) => Promise<boolean>;
+  deleteEvent: (id: string) => Promise<boolean>;
+  registerForEvent: (eventId: string) => Promise<boolean>;
+  leaveEvent: (eventId: string) => Promise<boolean>;
 };
 
-const storageKey = 'jhtm.events.v1';
-const channelName = 'jhtm.events.channel.v1';
+type EventsApiItem = {
+  id: string;
+  name: string;
+  date: string;
+  time: string;
+  location: string;
+  status: EventStatus;
+  category?: string | null;
+  speaker?: string | null;
+  requires_registration?: boolean;
+  max_slots?: number | null;
+  registrations_count?: number;
+  remaining_slots?: number | null;
+  is_registered?: boolean;
+};
 
-const defaultEvents: EventItem[] = [
-  {
-    id: 'e1',
-    name: 'Sunday Worship Service',
-    date: '2026-03-22',
-    time: '10:00',
-    location: 'Main Sanctuary',
-    status: 'Scheduled',
-  },
-  {
-    id: 'e2',
-    name: 'Mid-week Prayer Meeting',
-    date: '2026-03-25',
-    time: '19:30',
-    location: 'Chapel',
-    status: 'Scheduled',
-  },
-  {
-    id: 'e3',
-    name: 'Youth Outreach Night',
-    date: '2026-03-27',
-    time: '18:00',
-    location: 'Community Hall',
-    status: 'Planned',
-  },
-  {
-    id: 'e4',
-    name: 'Leadership Training',
-    date: '2026-04-02',
-    time: '17:30',
-    location: 'Conference Room',
-    status: 'Planned',
-  },
-  {
-    id: 'e5',
-    name: 'Choir Rehearsal',
-    date: '2026-04-04',
-    time: '19:00',
-    location: 'Music Room',
-    status: 'Scheduled',
-  },
-];
-
-function safeParseEvents(raw: string | null): EventItem[] | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
-    return parsed as EventItem[];
-  } catch {
-    return null;
-  }
-}
-
-function loadInitialEvents(): EventItem[] {
-  if (typeof window === 'undefined') return defaultEvents;
-  const parsed = safeParseEvents(window.localStorage.getItem(storageKey));
-  return parsed ?? defaultEvents;
-}
-
-function persist(events: EventItem[]) {
-  try {
-    window.localStorage.setItem(storageKey, JSON.stringify(events));
-  } catch {
-    return;
-  }
-}
-
-function createChannel() {
-  if (typeof window === 'undefined') return null;
-  if (!('BroadcastChannel' in window)) return null;
-  return new BroadcastChannel(channelName);
-}
-
-const channel = createChannel();
-
-function broadcast(events: EventItem[]) {
-  channel?.postMessage({ type: 'events:update', events });
+function mapEvent(e: EventsApiItem): EventItem {
+  return {
+    id: e.id,
+    name: e.name,
+    date: e.date,
+    time: e.time,
+    location: e.location,
+    status: e.status,
+    category: e.category ?? null,
+    speaker: e.speaker ?? null,
+    requiresRegistration: Boolean(e.requires_registration),
+    maxSlots: e.max_slots ?? null,
+    registrationsCount: e.registrations_count ?? 0,
+    remainingSlots: e.remaining_slots ?? null,
+    isRegistered: Boolean(e.is_registered),
+  };
 }
 
 export const useEventsStore = create<EventsState>((set, get) => ({
-  events: loadInitialEvents(),
-  setEvents: (events) => {
-    set({ events });
-    if (typeof window !== 'undefined') {
-      persist(events);
-      broadcast(events);
+  events: [],
+  hasLoaded: false,
+  isLoading: false,
+  error: null,
+
+  loadEvents: async (opts) => {
+    if (get().hasLoaded && !opts?.force) return;
+    if (get().isLoading) return;
+    set({ isLoading: true, error: null });
+
+    const res = await apiRequest<{ results: EventsApiItem[] }>('/api/events/');
+    if (res.ok === false) {
+      set({ hasLoaded: true, isLoading: false, error: res.detail, events: [] });
+      return;
     }
+
+    set({
+      hasLoaded: true,
+      isLoading: false,
+      error: null,
+      events: (res.data.results ?? []).map(mapEvent),
+    });
   },
-  replaceEventsFromSync: (events) => {
-    set({ events });
+
+  createEvent: async (payload) => {
+    const body = {
+      name: payload.name,
+      date: payload.date,
+      time: payload.time,
+      location: payload.location,
+      status: payload.status,
+      category: payload.category ?? null,
+      speaker: payload.speaker ?? null,
+      requires_registration: Boolean(payload.requiresRegistration),
+      max_slots: payload.maxSlots ?? null,
+    };
+
+    const res = await apiRequest<{ id: string }>('/api/events/', { method: 'POST', body });
+    if (res.ok === false) {
+      set({ error: res.detail });
+      return null;
+    }
+
+    await get().loadEvents({ force: true });
+    return res.data.id;
   },
-  addEvent: (event) => {
-    const next = [event, ...get().events];
-    set({ events: next });
-    persist(next);
-    broadcast(next);
+
+  updateEvent: async (id, updates) => {
+    const body: Record<string, unknown> = {};
+    if (updates.name !== undefined) body.name = updates.name;
+    if (updates.date !== undefined) body.date = updates.date;
+    if (updates.time !== undefined) body.time = updates.time;
+    if (updates.location !== undefined) body.location = updates.location;
+    if (updates.status !== undefined) body.status = updates.status;
+    if (updates.category !== undefined) body.category = updates.category;
+    if (updates.speaker !== undefined) body.speaker = updates.speaker;
+    if (updates.requiresRegistration !== undefined)
+      body.requires_registration = Boolean(updates.requiresRegistration);
+    if (updates.maxSlots !== undefined) body.max_slots = updates.maxSlots;
+
+    const res = await apiRequest<{ id: string }>(`/api/events/${id}/`, { method: 'PATCH', body });
+    if (res.ok === false) {
+      set({ error: res.detail });
+      return false;
+    }
+
+    await get().loadEvents({ force: true });
+    return true;
   },
-  updateEvent: (id, updates) => {
-    const next = get().events.map((e) => (e.id === id ? { ...e, ...updates } : e));
-    set({ events: next });
-    persist(next);
-    broadcast(next);
+
+  deleteEvent: async (id) => {
+    const res = await apiRequest<unknown>(`/api/events/${id}/`, { method: 'DELETE' });
+    if (res.ok === false) {
+      set({ error: res.detail });
+      return false;
+    }
+
+    set({ events: get().events.filter((e) => e.id !== id) });
+    return true;
   },
-  deleteEvent: (id) => {
-    const next = get().events.filter((e) => e.id !== id);
-    set({ events: next });
-    persist(next);
-    broadcast(next);
+
+  registerForEvent: async (eventId) => {
+    const res = await apiRequest<{ ok: boolean }>(`/api/events/${eventId}/register/`, {
+      method: 'POST',
+    });
+    if (res.ok === false) {
+      set({ error: res.detail });
+      return false;
+    }
+    await get().loadEvents({ force: true });
+    return true;
+  },
+
+  leaveEvent: async (eventId) => {
+    const res = await apiRequest<unknown>(`/api/events/${eventId}/register/`, { method: 'DELETE' });
+    if (res.ok === false) {
+      set({ error: res.detail });
+      return false;
+    }
+    await get().loadEvents({ force: true });
+    return true;
   },
 }));
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => {
-    if (e.key !== storageKey) return;
-    const parsed = safeParseEvents(e.newValue);
-    if (!parsed) return;
-    useEventsStore.getState().replaceEventsFromSync(parsed);
-  });
-
-  channel?.addEventListener('message', (event: MessageEvent) => {
-    const data = event.data as { type?: string; events?: EventItem[] } | null;
-    if (data?.type !== 'events:update') return;
-    if (!Array.isArray(data.events)) return;
-    useEventsStore.getState().replaceEventsFromSync(data.events);
-  });
-}
-
-export function createEventId() {
-  const maybeCrypto = globalThis.crypto as unknown as { randomUUID?: () => string } | undefined;
-  return maybeCrypto?.randomUUID?.() ?? `e_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-}

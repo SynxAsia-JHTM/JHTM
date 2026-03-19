@@ -4,17 +4,15 @@ import { CalendarDays, CheckCircle2, QrCode, Search, UserPlus2, Users2, X } from
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/useToast';
 import { cn } from '@/lib/utils';
-import { loadMembers } from '@/lib/memberData';
 import { formatEventDateShort, formatEventTime } from '@/lib/eventFormat';
 import {
-  createAttendanceId,
-  createTokenId,
   type AttendanceRecord,
   type AttendanceStatus,
   type GuestProfile,
   useAttendanceStore,
 } from '@/stores/attendanceStore';
 import { useEventsStore } from '@/stores/eventsStore';
+import { useMembersStore } from '@/stores/membersStore';
 
 type FilterState = {
   date: string;
@@ -68,18 +66,19 @@ function isServiceLikeEvent(eventName: string) {
 
 export default function Attendance() {
   const toast = useToast();
-  const events = useEventsStore((s) => s.events);
-  const records = useAttendanceStore((s) => s.records);
-  const createToken = useAttendanceStore((s) => s.createToken);
-  const removeRecord = useAttendanceStore((s) => s.removeRecord);
-  const upsertRecord = useAttendanceStore((s) => s.upsertRecord);
-  const updateRecord = useAttendanceStore((s) => s.updateRecord);
-
-  const members = useMemo(() => loadMembers(), []);
+  const { events, loadEvents } = useEventsStore();
+  const { records, loadAdmin, adminUpsert, adminUpdate, adminRemove, createServiceToken } =
+    useAttendanceStore();
+  const { members, loadMembers } = useMembersStore();
   const membersById = useMemo(
     () => new Map(members.map((m) => [m.id, { name: m.name, email: m.email }])),
     [members]
   );
+
+  useEffect(() => {
+    void loadEvents();
+    void loadMembers();
+  }, [loadEvents, loadMembers]);
 
   const [filters, setFilters] = useState<FilterState>({
     date: '',
@@ -138,6 +137,18 @@ export default function Attendance() {
 
   const defaultEventId = eventOptions[0]?.id ?? '';
 
+  useEffect(() => {
+    const eventId = filters.eventId || defaultEventId;
+    if (!eventId) return;
+    void loadAdmin({ eventId });
+    const interval = window.setInterval(() => {
+      void loadAdmin({ eventId });
+    }, 10_000);
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [defaultEventId, filters.eventId, loadAdmin]);
+
   const onOpenCheckin = () => {
     if (!filters.eventId && defaultEventId) {
       setFilters((p) => ({ ...p, eventId: defaultEventId }));
@@ -152,12 +163,14 @@ export default function Attendance() {
       return;
     }
 
-    const tokenId = createTokenId();
-    const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
-    createToken({ id: tokenId, eventId, scope: 'service', expiresAt });
-    const url = `${window.location.origin}/checkin/${tokenId}`;
-    setActiveQrUrl(url);
-    setQrOpen(true);
+    void createServiceToken(eventId, 10).then((token) => {
+      if (!token) {
+        toast.error('Unable to generate link');
+        return;
+      }
+      setActiveQrUrl(token.url);
+      setQrOpen(true);
+    });
   };
 
   return (
@@ -380,8 +393,18 @@ export default function Attendance() {
         events={eventOptions}
         selectedEventId={filters.eventId || defaultEventId}
         onCreate={(payload) => {
-          upsertRecord(payload);
-          toast.success('Checked in');
+          void adminUpsert({
+            eventId: payload.eventId,
+            attendeeType: payload.attendeeType,
+            memberId: payload.memberId ?? undefined,
+            guest: payload.guest ?? undefined,
+            status: payload.status,
+            checkinMethod: payload.checkinMethod,
+            notes: payload.notes ?? undefined,
+          }).then((ok) => {
+            if (ok) toast.success('Recorded', 'Attendance saved.');
+            else toast.error('Save failed', 'Please try again.');
+          });
         }}
       />
 
@@ -404,9 +427,11 @@ export default function Attendance() {
         confirmLabel="Remove"
         onConfirm={() => {
           if (!deleteId) return;
-          removeRecord(deleteId);
-          setDeleteId(null);
-          toast.success('Record removed');
+          void adminRemove(deleteId).then((ok) => {
+            if (ok) toast.success('Removed', 'Attendance removed.');
+            else toast.error('Remove failed', 'Please try again.');
+            setDeleteId(null);
+          });
         }}
       />
 
@@ -418,9 +443,15 @@ export default function Attendance() {
         record={editId ? (records.find((r) => r.id === editId) ?? null) : null}
         onSave={(updates) => {
           if (!editId) return;
-          updateRecord(editId, updates);
-          toast.success('Updated', 'Attendance record updated.');
-          setEditId(null);
+          void adminUpdate(editId, {
+            status: updates.status,
+            checkinMethod: updates.checkinMethod,
+            notes: updates.notes,
+          }).then((ok) => {
+            if (ok) toast.success('Updated', 'Attendance record updated.');
+            else toast.error('Update failed', 'Please try again.');
+            setEditId(null);
+          });
         }}
       />
     </div>
@@ -548,7 +579,7 @@ function CheckinModal({
   onOpenChange: (open: boolean) => void;
   tab: 'member' | 'guest';
   setTab: (tab: 'member' | 'guest') => void;
-  members: Array<{ id: string; name: string; email: string; phone: string }>;
+  members: Array<{ id: string; name: string; email: string; phone?: string | null }>;
   events: Array<{ id: string; name: string; date: string; time: string }>;
   selectedEventId: string;
   onCreate: (record: AttendanceRecord) => void;
@@ -726,13 +757,12 @@ function CheckinModal({
             disabled={tab === 'member' ? !canSaveMember : !canSaveGuest}
             onClick={() => {
               const recordBase: AttendanceRecord = {
-                id: createAttendanceId(),
+                id: `local_${Date.now()}_${Math.random().toString(16).slice(2)}`,
                 eventId,
                 attendeeType: tab,
                 status,
                 checkinMethod: 'manual',
                 checkedInAt: new Date().toISOString(),
-                checkedInBy: 'admin',
                 notes: notes.trim() || undefined,
               };
 

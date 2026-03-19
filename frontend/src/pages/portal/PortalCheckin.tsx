@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { ClipboardCheck, QrCode, CheckCircle, Clock, MapPin, Calendar } from 'lucide-react';
 
+import { useToast } from '@/components/ui/useToast';
 import { cn } from '@/lib/utils';
 import { type AttendanceRecord, useAttendanceStore } from '@/stores/attendanceStore';
 import { type EventItem, useEventsStore } from '@/stores/eventsStore';
-import { getCurrentMemberId } from '@/lib/memberIdentity';
 
 type Service = {
   event: EventItem;
@@ -44,7 +44,8 @@ function isServiceLike(event: EventItem) {
 }
 
 export default function PortalCheckin() {
-  const events = useEventsStore((s) => s.events);
+  const toast = useToast();
+  const { events, loadEvents } = useEventsStore();
   const services = useMemo<Service[]>(() => {
     const nowIso = new Date().toISOString();
     return [...events]
@@ -59,54 +60,41 @@ export default function PortalCheckin() {
 
   const [showQR, setShowQR] = useState(false);
 
-  const memberId = getCurrentMemberId();
-  const records = useAttendanceStore((s) => s.records);
-  const upsertRecord = useAttendanceStore((s) => s.upsertRecord);
+  const { myRecords, loadMine, selfAttend } = useAttendanceStore();
+
+  React.useEffect(() => {
+    void loadEvents();
+    void loadMine();
+  }, [loadEvents, loadMine]);
 
   const memberServiceRecords = useMemo(() => {
-    return records
-      .filter((r) => r.attendeeType === 'member')
-      .filter((r) => (r.memberId ?? '') === memberId)
+    const serviceIds = new Set(events.filter((e) => isServiceLike(e)).map((e) => e.id));
+    return myRecords
+      .filter((r) => serviceIds.has(r.eventId))
       .filter((r) => r.status !== 'removed')
       .sort((a, b) => b.checkedInAt.localeCompare(a.checkedInAt));
-  }, [memberId, records]);
+  }, [events, myRecords]);
 
   const recordForService = (service: Service) => {
     return memberServiceRecords.find((r) => r.eventId === service.event.id) ?? null;
   };
 
-  const markExpected = (service: Service) => {
+  const markExpected = async (service: Service) => {
     const existing = recordForService(service);
     if (existing && (existing.status === 'present' || existing.status === 'late')) return;
-    upsertRecord({
-      id: `self:${memberId}:${service.event.id}`,
-      eventId: service.event.id,
-      attendeeType: 'member',
-      memberId,
-      status: 'expected',
-      checkinMethod: 'manual',
-      checkedInAt: new Date().toISOString(),
-      checkedInBy: 'self',
-      notes: service.event.name,
-    });
+    const ok = await selfAttend({ eventId: service.event.id, status: 'expected' });
+    if (ok) toast.success('Marked', 'Expected / Early attendance saved.');
+    else toast.error('Unable to record', 'Please try again.');
   };
 
-  const markHere = (service: Service) => {
+  const markHere = async (service: Service) => {
     const now = new Date();
     const start = new Date(service.startAt);
     const isLate = now.getTime() > start.getTime() + 10 * 60_000;
     const status: AttendanceRecord['status'] = isLate ? 'late' : 'present';
-    upsertRecord({
-      id: `self:${memberId}:${service.event.id}`,
-      eventId: service.event.id,
-      attendeeType: 'member',
-      memberId,
-      status,
-      checkinMethod: 'manual',
-      checkedInAt: now.toISOString(),
-      checkedInBy: 'self',
-      notes: service.event.name,
-    });
+    const ok = await selfAttend({ eventId: service.event.id, status });
+    if (ok) toast.success('Recorded', 'Thank you for attending.');
+    else toast.error('Unable to record', 'Please try again.');
   };
 
   return (

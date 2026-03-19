@@ -7,6 +7,19 @@ import Attendance from '@/pages/Attendance';
 import { ToastProvider } from '@/components/ui/ToastProvider';
 import { useEventsStore } from '@/stores/eventsStore';
 
+vi.mock('@/lib/apiClient', () => ({
+  apiRequest: async (path: string) => {
+    if (path === '/api/attendance/tokens/') {
+      return {
+        ok: true,
+        data: { id: 'token-1', expires_at: new Date(Date.now() + 600_000).toISOString() },
+      } as const;
+    }
+    return { ok: false, status: 404, detail: 'not mocked' } as const;
+  },
+  getAuthToken: () => 'mock-token',
+}));
+
 describe('Admin QR Attendance widget', () => {
   let writeTextSpy: ReturnType<typeof vi.fn>;
   let execCommandSpy: ReturnType<typeof vi.fn>;
@@ -27,6 +40,9 @@ describe('Admin QR Attendance widget', () => {
           category: 'Service',
         },
       ],
+      hasLoaded: true,
+      isLoading: false,
+      error: null,
     });
 
     writeTextSpy = vi.fn().mockResolvedValue(undefined);

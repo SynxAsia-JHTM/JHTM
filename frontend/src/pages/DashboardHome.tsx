@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Calendar, Church, Users } from 'lucide-react';
 
 import { formatDashboardDateTime } from '@/lib/eventFormat';
@@ -25,7 +25,11 @@ const recentMembers = [
 
 export default function DashboardHome() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const events = useEventsStore((s) => s.events);
+  const { events, loadEvents } = useEventsStore();
+
+  useEffect(() => {
+    void loadEvents();
+  }, [loadEvents]);
 
   const upcomingEvents = useMemo(() => {
     const now = new Date();

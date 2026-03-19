@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { User, Mail, Phone, Calendar, Briefcase, Save } from 'lucide-react';
 
+import { useToast } from '@/components/ui/useToast';
+import { useMembersStore } from '@/stores/membersStore';
+
 type MemberGender = 'Male' | 'Female' | 'Other';
-type MemberCategory = 'Youth' | 'Pastor' | 'Leader' | 'Member';
+type MemberCategory = 'Youth' | 'Pastor' | 'Leader' | 'Member' | 'Guest';
 
 const ministries = [
   'Worship',
@@ -16,31 +19,88 @@ const ministries = [
 ] as const;
 
 export default function PortalProfile() {
+  const toast = useToast();
+  const { me, isLoadingMe, error, loadMe, updateMe } = useMembersStore();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Mock member data - in real app, this would come from API
   const [formData, setFormData] = useState({
-    name: 'John Smith',
-    email: 'john.smith@example.com',
-    phone: '+1 (555) 010-1200',
+    name: '',
+    email: '',
+    phone: '',
     gender: 'Male' as MemberGender,
     category: 'Member' as MemberCategory,
-    birthdate: '1990-03-11',
-    ministry: 'Worship',
+    birthdate: '',
+    ministry: 'None',
   });
+
+  useEffect(() => {
+    void loadMe();
+  }, [loadMe]);
+
+  useEffect(() => {
+    if (!me) return;
+    setFormData({
+      name: me.name ?? '',
+      email: me.email ?? '',
+      phone: me.phone ?? '',
+      gender: (me.gender as MemberGender) ?? 'Male',
+      category: (me.category as MemberCategory) ?? 'Member',
+      birthdate: me.birthdate ?? '',
+      ministry: me.ministry ?? 'None',
+    });
+  }, [me]);
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const ok = await updateMe({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      gender: formData.gender,
+      category: formData.category,
+      birthdate: formData.birthdate || null,
+      ministry: formData.ministry,
+    });
     setIsSaving(false);
-    setIsEditing(false);
+    if (ok) {
+      toast.success('Saved', 'Your profile has been updated.');
+      setIsEditing(false);
+    } else {
+      toast.error('Save failed', 'Please try again.');
+    }
   };
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  const memberSince = useMemo(() => {
+    if (!me?.created_at) return '—';
+    const d = new Date(me.created_at);
+    if (!Number.isFinite(d.getTime())) return '—';
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+  }, [me?.created_at]);
+
+  if (isLoadingMe && !me) {
+    return <div className="p-8 text-center text-sm text-slate-500">Loading profile...</div>;
+  }
+
+  if (!me) {
+    return (
+      <div className="space-y-4 p-6">
+        <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
+        <p className="text-sm text-slate-600">{error || 'Unable to load your profile.'}</p>
+        <button
+          type="button"
+          onClick={() => loadMe({ force: true })}
+          className="jhtm-btn jhtm-btn-primary"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -88,7 +148,7 @@ export default function PortalProfile() {
               <h2 className="text-xl font-bold text-slate-900">{formData.name}</h2>
               <p className="text-slate-500">{formData.category}</p>
               <span className="mt-1 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                Active Member
+                {me.status ?? 'Active'}
               </span>
             </div>
           </div>
@@ -165,11 +225,13 @@ export default function PortalProfile() {
                 />
               ) : (
                 <p className="rounded-xl bg-slate-50 px-4 py-3 text-slate-900">
-                  {new Date(formData.birthdate).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {formData.birthdate
+                    ? new Date(formData.birthdate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    : '—'}
                 </p>
               )}
             </div>
@@ -226,15 +288,15 @@ export default function PortalProfile() {
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-xl bg-slate-50 p-4">
             <p className="text-sm text-slate-500">Member Since</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">January 2020</p>
+            <p className="mt-1 text-lg font-semibold text-slate-900">{memberSince}</p>
           </div>
           <div className="rounded-xl bg-slate-50 p-4">
             <p className="text-sm text-slate-500">Member ID</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">JHTM-001</p>
+            <p className="mt-1 text-lg font-semibold text-slate-900">{me.id}</p>
           </div>
           <div className="rounded-xl bg-slate-50 p-4">
             <p className="text-sm text-slate-500">Status</p>
-            <p className="mt-1 text-lg font-semibold text-emerald-600">Active</p>
+            <p className="mt-1 text-lg font-semibold text-emerald-600">{me.status ?? 'Active'}</p>
           </div>
         </div>
       </div>

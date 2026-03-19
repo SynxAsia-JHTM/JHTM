@@ -2,11 +2,12 @@ import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarClock, ClipboardCheck, Heart, Calendar, User } from 'lucide-react';
 
+import { useToast } from '@/components/ui/useToast';
 import { usePrayerRequestsStore } from '@/stores/prayerRequestsStore';
 import { cn } from '@/lib/utils';
 import { type AttendanceRecord, useAttendanceStore } from '@/stores/attendanceStore';
 import { type EventItem, useEventsStore } from '@/stores/eventsStore';
-import { getCurrentMemberId } from '@/lib/memberIdentity';
+import { useMembersStore } from '@/stores/membersStore';
 
 function toLocalDateLabel(iso: string) {
   const d = new Date(iso);
@@ -43,26 +44,29 @@ function isServiceLike(event: EventItem) {
 function statusPill(status: AttendanceRecord['status']) {
   if (status === 'present') return 'bg-emerald-100 text-emerald-700';
   if (status === 'late') return 'bg-amber-100 text-amber-800';
+  if (status === 'expected') return 'bg-slate-200 text-slate-700';
   return 'bg-slate-200 text-slate-700';
 }
 
 export default function PortalDashboard() {
+  const toast = useToast();
   const navigate = useNavigate();
 
   const loadMyPrayerRequests = usePrayerRequestsStore((s) => s.loadMyRequests);
   const myPrayerRequests = usePrayerRequestsStore((s) => s.myRequests);
 
-  const records = useAttendanceStore((s) => s.records);
-  const upsertRecord = useAttendanceStore((s) => s.upsertRecord);
-
-  const events = useEventsStore((s) => s.events);
+  const { myRecords, loadMine, selfAttend } = useAttendanceStore();
+  const { events, loadEvents } = useEventsStore();
+  const { me, loadMe } = useMembersStore();
 
   useEffect(() => {
     void loadMyPrayerRequests();
-  }, [loadMyPrayerRequests]);
+    void loadEvents();
+    void loadMine();
+    void loadMe();
+  }, [loadEvents, loadMe, loadMine, loadMyPrayerRequests]);
 
-  const memberName = 'John Smith';
-  const memberId = getCurrentMemberId();
+  const memberName = me?.name?.trim() || 'Member';
 
   const upcomingServices = useMemo(() => {
     const nowIso = new Date().toISOString();
@@ -84,12 +88,10 @@ export default function PortalDashboard() {
   }, [events]);
 
   const memberServiceRecords = useMemo(() => {
-    return records
-      .filter((r) => r.attendeeType === 'member')
-      .filter((r) => (r.memberId ?? '') === memberId)
+    return myRecords
       .filter((r) => serviceEventIds.has(r.eventId))
       .filter((r) => r.status !== 'removed');
-  }, [memberId, records, serviceEventIds]);
+  }, [myRecords, serviceEventIds]);
 
   const servicesAttended = useMemo(() => {
     return memberServiceRecords.filter((r) => r.status === 'present' || r.status === 'late').length;
@@ -108,41 +110,24 @@ export default function PortalDashboard() {
   }, [memberServiceRecords]);
 
   const recordForEvent = (eventId: string) => {
-    return memberServiceRecords.find((r) => r.eventId === eventId) ?? null;
+    return myRecords.find((r) => r.eventId === eventId) ?? null;
   };
 
-  const markExpected = (event: EventItem) => {
+  const markExpected = async (event: EventItem) => {
     const existing = recordForEvent(event.id);
     if (existing && (existing.status === 'present' || existing.status === 'late')) return;
-    upsertRecord({
-      id: `self:${memberId}:${event.id}`,
-      eventId: event.id,
-      attendeeType: 'member',
-      memberId,
-      status: 'expected',
-      checkinMethod: 'manual',
-      checkedInAt: new Date().toISOString(),
-      checkedInBy: 'self',
-      notes: event.name,
-    });
+    const ok = await selfAttend({ eventId: event.id, status: 'expected' });
+    if (ok) toast.success('Marked', 'Expected / Early attendance saved.');
+    else toast.error('Unable to record', 'Please try again.');
   };
 
-  const markHere = (event: EventItem, startAt: string) => {
+  const markHere = async (event: EventItem, startAt: string) => {
     const now = new Date();
     const start = new Date(startAt);
     const isLate = now.getTime() > start.getTime() + 10 * 60_000;
-    const status: AttendanceRecord['status'] = isLate ? 'late' : 'present';
-    upsertRecord({
-      id: `self:${memberId}:${event.id}`,
-      eventId: event.id,
-      attendeeType: 'member',
-      memberId,
-      status,
-      checkinMethod: 'manual',
-      checkedInAt: now.toISOString(),
-      checkedInBy: 'self',
-      notes: event.name,
-    });
+    const ok = await selfAttend({ eventId: event.id, status: isLate ? 'late' : 'present' });
+    if (ok) toast.success('Recorded', 'Thank you for attending.');
+    else toast.error('Unable to record', 'Please try again.');
   };
 
   const stats = useMemo(

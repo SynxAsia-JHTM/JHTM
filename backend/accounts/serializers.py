@@ -73,3 +73,68 @@ class UserManagementSerializer(serializers.Serializer):
     password = serializers.CharField(required=False, write_only=True)
     is_staff = serializers.BooleanField(required=False)
     is_superuser = serializers.BooleanField(required=False)
+
+
+class MemberUpdateSerializer(serializers.Serializer):
+    name = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.EmailField(required=False)
+    phone = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    gender = serializers.ChoiceField(choices=["Male", "Female", "Other"], required=False, allow_null=True)
+    category = serializers.ChoiceField(
+        choices=["Youth", "Pastor", "Leader", "Member", "Guest"], required=False, allow_null=True
+    )
+    birthdate = serializers.DateField(required=False, allow_null=True)
+    ministry = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    status = serializers.ChoiceField(
+        choices=["Active", "Pending", "Inactive"], required=False
+    )
+
+
+class EventCreateUpdateSerializer(serializers.Serializer):
+    name = serializers.CharField(required=False)
+    date = serializers.DateField(required=False)
+    time = serializers.CharField(required=False, allow_blank=True)
+    location = serializers.CharField(required=False, allow_blank=True)
+    status = serializers.ChoiceField(
+        choices=["Scheduled", "Planned", "Completed", "Cancelled"], required=False
+    )
+    category = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    speaker = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    requires_registration = serializers.BooleanField(required=False)
+    max_slots = serializers.IntegerField(required=False, allow_null=True)
+
+
+class AttendanceCreateSerializer(serializers.Serializer):
+    event_id = serializers.UUIDField()
+    attendee_type = serializers.ChoiceField(choices=["member", "guest"], required=False, default="member")
+    member_id = serializers.UUIDField(required=False, allow_null=True)
+    guest_full_name = serializers.CharField(required=False, allow_blank=False)
+    guest_phone = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    guest_email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+    status = serializers.ChoiceField(
+        choices=["present", "expected", "late", "excused"], required=False, default="present"
+    )
+    checkin_method = serializers.ChoiceField(choices=["manual", "qr"], required=False, default="manual")
+    notes = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+
+class AttendanceUpdateSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=["present", "expected", "late", "excused", "removed"], required=False
+    )
+    checkin_method = serializers.ChoiceField(choices=["manual", "qr"], required=False)
+    notes = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+
+class CheckinTokenCreateSerializer(serializers.Serializer):
+    event_id = serializers.UUIDField()
+    expires_in_minutes = serializers.IntegerField(required=False, default=10)
+
+
+class QrAttendanceSubmitSerializer(serializers.Serializer):
+    token_id = serializers.UUIDField()
+    attendee_type = serializers.ChoiceField(choices=["member", "guest"], required=False, default="guest")
+    member_id = serializers.UUIDField(required=False, allow_null=True)
+    guest_full_name = serializers.CharField(required=False, allow_blank=False)
+    guest_phone = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    guest_email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)

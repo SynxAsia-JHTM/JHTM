@@ -1,47 +1,85 @@
 import { describe, expect, it, vi } from 'vitest';
 
-describe('attendanceStore', () => {
-  it('adds, updates, and removes attendance records', async () => {
+describe('attendanceStore (API-backed)', () => {
+  it('selfAttend posts then refreshes myRecords', async () => {
     vi.resetModules();
-    localStorage.clear();
 
+    const apiRequest = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true as const, data: { id: 'a1' } })
+      .mockResolvedValueOnce({
+        ok: true as const,
+        data: {
+          results: [
+            {
+              id: 'r1',
+              event_id: 'e1',
+              attendee_type: 'member',
+              member_id: 'm1',
+              member_name: 'Member One',
+              guest: null,
+              status: 'present',
+              checkin_method: 'manual',
+              checked_in_at: new Date('2026-01-01T10:00:00.000Z').toISOString(),
+              notes: null,
+            },
+          ],
+        },
+      });
+
+    vi.doMock('@/lib/apiClient', () => ({ apiRequest }));
     const { useAttendanceStore } = await import('@/stores/attendanceStore');
 
-    useAttendanceStore.getState().addRecord({
-      id: 'r1',
-      eventId: 'e1',
-      attendeeType: 'guest',
-      guest: { fullName: 'Guest One' },
-      status: 'present',
-      checkinMethod: 'manual',
-      checkedInAt: new Date().toISOString(),
-      checkedInBy: 'admin',
-    });
-
-    expect(useAttendanceStore.getState().records).toHaveLength(1);
-
-    useAttendanceStore.getState().updateRecord('r1', { status: 'late' });
-    expect(useAttendanceStore.getState().records[0].status).toBe('late');
-
-    useAttendanceStore.getState().removeRecord('r1');
-    expect(useAttendanceStore.getState().records).toHaveLength(0);
+    const ok = await useAttendanceStore.getState().selfAttend({ eventId: 'e1', status: 'present' });
+    expect(ok).toBe(true);
+    expect(apiRequest).toHaveBeenCalledTimes(2);
+    expect(apiRequest.mock.calls[0][0]).toBe('/api/attendance/');
+    expect(apiRequest.mock.calls[1][0]).toBe('/api/attendance/me/');
+    expect(useAttendanceStore.getState().myRecords[0].id).toBe('r1');
   });
 
-  it('creates and marks tokens used', async () => {
+  it('selfAttend rolls back optimistic update on API failure', async () => {
     vi.resetModules();
-    localStorage.clear();
+
+    const apiRequest = vi.fn().mockResolvedValueOnce({ ok: false as const, status: 401, detail: 'Unauthorized' });
+    vi.doMock('@/lib/apiClient', () => ({ apiRequest }));
     const { useAttendanceStore } = await import('@/stores/attendanceStore');
 
-    useAttendanceStore.getState().createToken({
-      id: 't1',
-      eventId: 'e1',
-      scope: 'service',
-      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    useAttendanceStore.setState({
+      myRecords: [
+        {
+          id: 'existing',
+          eventId: 'e0',
+          attendeeType: 'member',
+          memberId: 'm0',
+          memberName: 'Existing',
+          guest: null,
+          status: 'present',
+          checkinMethod: 'manual',
+          checkedInAt: new Date('2026-01-01T09:00:00.000Z').toISOString(),
+          notes: null,
+        },
+      ],
+      error: null,
     });
 
-    expect(useAttendanceStore.getState().tokens).toHaveLength(1);
+    const ok = await useAttendanceStore.getState().selfAttend({ eventId: 'e1', status: 'present' });
+    expect(ok).toBe(false);
+    expect(useAttendanceStore.getState().myRecords).toHaveLength(1);
+    expect(useAttendanceStore.getState().myRecords[0].id).toBe('existing');
+  });
 
-    useAttendanceStore.getState().markTokenUsed('t1');
-    expect(useAttendanceStore.getState().tokens[0].usedAt).toBeTruthy();
+  it('createServiceToken returns a usable checkin URL', async () => {
+    vi.resetModules();
+
+    const apiRequest = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true as const, data: { id: 't1', expires_at: new Date().toISOString() } });
+    vi.doMock('@/lib/apiClient', () => ({ apiRequest }));
+    const { useAttendanceStore } = await import('@/stores/attendanceStore');
+
+    const token = await useAttendanceStore.getState().createServiceToken('e1', 10);
+    expect(token?.tokenId).toBe('t1');
+    expect(token?.url).toContain('/checkin/t1');
   });
 });
