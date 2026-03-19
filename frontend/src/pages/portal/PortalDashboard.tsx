@@ -4,38 +4,38 @@ import { CalendarClock, ClipboardCheck, Heart, Calendar, User } from 'lucide-rea
 
 export default function PortalDashboard() {
   const navigate = useNavigate();
-  
+
   // Mock member data - in real app, this would come from API
-  const memberName = "John Smith";
+  const memberName = 'John Smith';
   const upcomingServices = [
     { id: 1, name: 'Sunday Worship', date: 'March 23, 2026', time: '9:00 AM' },
     { id: 2, name: 'Prayer Meeting', date: 'March 25, 2026', time: '7:00 PM' },
   ];
-  
+
   const stats = [
-    { 
-      label: 'Services Attended', 
-      value: '12', 
+    {
+      label: 'Services Attended',
+      value: '12',
       icon: CalendarClock,
-      color: 'bg-blue-100 text-blue-700'
+      color: 'bg-blue-100 text-blue-700',
     },
-    { 
-      label: 'Check-ins This Month', 
-      value: '3', 
+    {
+      label: 'Check-ins This Month',
+      value: '3',
       icon: ClipboardCheck,
-      color: 'bg-emerald-100 text-emerald-700'
+      color: 'bg-emerald-100 text-emerald-700',
     },
-    { 
-      label: 'Prayer Requests', 
-      value: '2', 
+    {
+      label: 'Prayer Requests',
+      value: '2',
       icon: Heart,
-      color: 'bg-purple-100 text-purple-700'
+      color: 'bg-purple-100 text-purple-700',
     },
-    { 
-      label: 'Upcoming Events', 
-      value: '4', 
+    {
+      label: 'Upcoming Events',
+      value: '4',
       icon: Calendar,
-      color: 'bg-amber-100 text-amber-700'
+      color: 'bg-amber-100 text-amber-700',
     },
   ];
 
@@ -105,7 +105,7 @@ export default function PortalDashboard() {
               <p className="text-xs text-slate-500">Keep your info current</p>
             </div>
           </button>
-          
+
           <button
             onClick={() => navigate('/portal/checkin')}
             className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 transition-colors hover:bg-slate-50"
@@ -118,7 +118,7 @@ export default function PortalDashboard() {
               <p className="text-xs text-slate-500">Mark attendance</p>
             </div>
           </button>
-          
+
           <button
             onClick={() => navigate('/portal/prayers')}
             className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 transition-colors hover:bg-slate-50"
@@ -131,7 +131,7 @@ export default function PortalDashboard() {
               <p className="text-xs text-slate-500">Share your needs</p>
             </div>
           </button>
-          
+
           <button
             onClick={() => navigate('/portal/events')}
             className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 transition-colors hover:bg-slate-50"
@@ -151,7 +151,7 @@ export default function PortalDashboard() {
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">Upcoming Services</h2>
-          <button 
+          <button
             onClick={() => navigate('/portal/events')}
             className="text-sm font-semibold text-blue-600 hover:text-blue-700"
           >
@@ -166,7 +166,9 @@ export default function PortalDashboard() {
             >
               <div>
                 <p className="font-semibold text-slate-900">{service.name}</p>
-                <p className="text-sm text-slate-500">{service.date} at {service.time}</p>
+                <p className="text-sm text-slate-500">
+                  {service.date} at {service.time}
+                </p>
               </div>
               <button
                 onClick={() => navigate('/portal/checkin')}

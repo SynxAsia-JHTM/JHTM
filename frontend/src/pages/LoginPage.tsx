@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, AlertCircle, Users, UserCog, UserPlus } from 'lucide-react';
+import {
+  AlertCircle,
+  Lock,
+  Mail,
+  Phone,
+  ShieldCheck,
+  UserCog,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { getApiBaseUrl } from '@/lib/config';
@@ -11,14 +20,27 @@ function cn(...inputs: ClassValue[]) {
 }
 
 type LoginRole = 'member' | 'admin' | 'guest';
+type LoginMethod = 'password' | 'otp';
+
+const palette = {
+  primary: '#355872',
+  secondary: '#7AAACE',
+  highlight: '#9CD5FF',
+  background: '#F7F8F0',
+};
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('admin@jhtmchurch.com');
-  const [password, setPassword] = useState('password123');
+  const [identifier, setIdentifier] = useState('member@jhtmchurch.com');
+  const [password, setPassword] = useState('member123');
+  const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [role, setRole] = useState<LoginRole>('member');
+  const [method, setMethod] = useState<LoginMethod>('password');
+  const [rememberMe, setRememberMe] = useState(true);
   const navigate = useNavigate();
+
+  const isEmail = useMemo(() => identifier.includes('@'), [identifier]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,21 +66,26 @@ const LoginPage: React.FC = () => {
     }
 
     const DEMO_ACCOUNTS = {
-      admin: { 
-        email: adminEmail || 'admin@jhtmchurch.com', 
-        password: adminPassword || 'password123' 
+      admin: {
+        email: adminEmail || 'admin@jhtmchurch.com',
+        password: adminPassword || 'password123',
       },
-      member: { 
-        email: memberEmail || 'member@jhtmchurch.com', 
-        password: memberPassword || 'member123' 
+      member: {
+        email: memberEmail || 'member@jhtmchurch.com',
+        password: memberPassword || 'member123',
       },
     };
 
-    const isValid = role === 'admin' 
-      ? (email.trim().toLowerCase() === DEMO_ACCOUNTS.admin.email && password === DEMO_ACCOUNTS.admin.password)
-      : role === 'member'
-        ? (email.trim() !== '' && password.trim() !== '')
-        : false; // Guest cannot login, must register
+    const normalized = identifier.trim();
+
+    const isValid =
+      role === 'admin'
+        ? normalized.toLowerCase() === DEMO_ACCOUNTS.admin.email &&
+          (method === 'password' ? password : otp) === DEMO_ACCOUNTS.admin.password
+        : role === 'member'
+          ? normalized !== '' &&
+            (method === 'password' ? password.trim() !== '' : /^\d{6}$/.test(otp))
+          : false;
 
     if (!isValid) {
       setIsLoading(false);
@@ -70,19 +97,29 @@ const LoginPage: React.FC = () => {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
+    const store = rememberMe ? window.localStorage : window.sessionStorage;
+
     const signInOffline = () => {
-      localStorage.setItem('token', 'mock-token');
-      localStorage.setItem('user', JSON.stringify({ email, role }));
-      if (role === 'admin') {
-        navigate('/dashboard');
-      } else {
-        navigate('/portal');
+      store.setItem('token', 'mock-token');
+      store.setItem('user', JSON.stringify({ email: normalized, role }));
+      if (role === 'member') {
+        const onboardingDone = window.localStorage.getItem('jhtm.onboardingComplete.v1') === 'true';
+        if (!onboardingDone) {
+          navigate('/onboarding');
+          return;
+        }
       }
+      navigate(role === 'admin' ? '/dashboard' : '/portal');
     };
 
     try {
       const apiBase = getApiBaseUrl();
       if (!apiBase) {
+        signInOffline();
+        return;
+      }
+
+      if (method === 'otp' || !isEmail) {
         signInOffline();
         return;
       }
@@ -93,20 +130,24 @@ const LoginPage: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: normalized, password }),
         signal: controller.signal,
       });
 
       const data = await response.json().catch(() => null);
 
       if (response.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        if (role === 'admin') {
-          navigate('/dashboard');
-        } else {
-          navigate('/portal');
+        store.setItem('token', data.token);
+        store.setItem('user', JSON.stringify(data.user));
+        if (role === 'member') {
+          const onboardingDone =
+            window.localStorage.getItem('jhtm.onboardingComplete.v1') === 'true';
+          if (!onboardingDone) {
+            navigate('/onboarding');
+            return;
+          }
         }
+        navigate(role === 'admin' ? '/dashboard' : '/portal');
         return;
       }
 
@@ -166,27 +207,34 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
+    <div className="min-h-screen p-4" style={{ background: palette.background }}>
       <BackToHomeLink variant="floating" />
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-zinc-100">
-        <div className="p-8">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-zinc-900 mb-2">Welcome to JHTM</h1>
-            <p className="text-zinc-500 text-sm">Sign in to continue</p>
+      <div className="mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <div
+          className="px-8 pb-6 pt-8"
+          style={{
+            background: `linear-gradient(135deg, ${palette.primary} 0%, ${palette.secondary} 55%, ${palette.background} 100%)`,
+          }}
+        >
+          <div className="text-center">
+            <h1 className="text-2xl font-extrabold text-white">Welcome to JHTM</h1>
+            <p className="mt-1 text-sm font-semibold text-white/85">Sign in to continue</p>
           </div>
+        </div>
 
+        <div className="p-8">
           {/* Role Tabs */}
-          <div className="flex gap-1 p-1 bg-zinc-100 rounded-xl mb-6">
+          <div className="mb-6 flex gap-1 rounded-2xl bg-slate-100 p-1">
             {(['member', 'admin', 'guest'] as LoginRole[]).map((r) => (
               <button
                 key={r}
                 type="button"
                 onClick={() => setRole(r)}
                 className={cn(
-                  'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all',
+                  'flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all',
                   role === r
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-zinc-500 hover:text-zinc-700'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
                 )}
               >
                 {getRoleIcon(r)}
@@ -196,7 +244,7 @@ const LoginPage: React.FC = () => {
           </div>
 
           {/* Role-specific instruction */}
-          <div className="mb-5 p-3 rounded-lg bg-blue-50 text-blue-800 text-sm text-center">
+          <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center text-sm font-semibold text-slate-700">
             {getRoleInstruction()}
           </div>
 
@@ -204,18 +252,22 @@ const LoginPage: React.FC = () => {
           {role === 'guest' ? (
             <div className="space-y-4">
               <div className="text-center py-4">
-                <div className="mx-auto w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-                  <UserPlus className="h-8 w-8 text-emerald-600" />
+                <div
+                  className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: palette.highlight }}
+                >
+                  <UserPlus className="h-8 w-8 text-slate-900" />
                 </div>
                 <h2 className="text-lg font-semibold text-zinc-900">Join Our Church Family</h2>
                 <p className="mt-2 text-sm text-zinc-500">
                   Register to get connected with our church community
                 </p>
               </div>
-              
+
               <Link
                 to="/register"
-                className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-lg transition-all"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+                style={{ backgroundColor: palette.primary }}
               >
                 <UserPlus size={20} />
                 Register as Guest
@@ -227,7 +279,8 @@ const LoginPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setRole('member')}
-                    className="text-blue-600 hover:text-blue-700 font-medium"
+                    className="font-semibold underline underline-offset-4"
+                    style={{ color: palette.primary }}
                   >
                     Sign in here
                   </button>
@@ -237,42 +290,121 @@ const LoginPage: React.FC = () => {
           ) : (
             /* Admin/Member Login Form */
             <form onSubmit={handleLogin} className="space-y-5">
+              <div className="flex gap-1 rounded-2xl bg-slate-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => setMethod('password')}
+                  className={cn(
+                    'flex h-11 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition',
+                    method === 'password'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  )}
+                >
+                  <Lock size={18} aria-hidden="true" />
+                  Password
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMethod('otp')}
+                  className={cn(
+                    'flex h-11 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition',
+                    method === 'otp'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  )}
+                >
+                  <ShieldCheck size={18} aria-hidden="true" />
+                  OTP
+                </button>
+              </div>
+
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 block">Email Address</label>
+                <label className="text-sm font-semibold text-slate-700 block">Email or Phone</label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
-                    <Mail size={18} />
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                    {isEmail ? (
+                      <Mail size={18} aria-hidden="true" />
+                    ) : (
+                      <Phone size={18} aria-hidden="true" />
+                    )}
                   </div>
                   <input
-                    type="email"
+                    type="text"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder={role === 'admin' ? 'admin@jhtmchurch.com' : 'member@example.com'}
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:border-sky-200 focus:bg-white focus:ring-2 focus:ring-sky-600"
+                    placeholder={
+                      role === 'admin' ? 'admin@jhtmchurch.com' : 'member@jhtmchurch.com'
+                    }
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 block">Password</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
-                    <Lock size={18} />
+              {method === 'password' ? (
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700 block">Password</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                      <Lock size={18} aria-hidden="true" />
+                    </div>
+                    <input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:border-sky-200 focus:bg-white focus:ring-2 focus:ring-sky-600"
+                      placeholder="••••••••"
+                    />
                   </div>
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="••••••••"
-                  />
                 </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700 block">
+                    One-time passcode
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                      <ShieldCheck size={18} aria-hidden="true" />
+                    </div>
+                    <input
+                      inputMode="numeric"
+                      pattern="\d*"
+                      required
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:border-sky-200 focus:bg-white focus:ring-2 focus:ring-sky-600"
+                      placeholder="6-digit code"
+                    />
+                  </div>
+                  <p className="text-xs font-semibold text-slate-500">
+                    OTP login uses offline sign-in in this demo.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between gap-4">
+                <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-navy focus:ring-sky-600"
+                  />
+                  Remember me
+                </label>
+                <Link
+                  to="/reset-password"
+                  className="text-sm font-semibold underline underline-offset-4"
+                  style={{ color: palette.primary }}
+                >
+                  Forgot password?
+                </Link>
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg text-sm animate-pulse">
+                <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">
                   <AlertCircle size={16} />
                   <span>{error}</span>
                 </div>
@@ -282,18 +414,21 @@ const LoginPage: React.FC = () => {
                 type="submit"
                 disabled={isLoading}
                 className={cn(
-                  'w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2',
+                  'flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-white shadow-md transition-all duration-200 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50',
                   isLoading && 'animate-pulse'
                 )}
+                style={{ backgroundColor: palette.primary }}
               >
-                {isLoading ? 'Signing in...' : `Sign in as ${role === 'admin' ? 'Admin' : 'Member'}`}
+                {isLoading
+                  ? 'Signing in...'
+                  : `Sign in as ${role === 'admin' ? 'Admin' : 'Member'}`}
               </button>
             </form>
           )}
         </div>
 
-        <div className="bg-zinc-50 p-4 text-center border-t border-zinc-100">
-          <p className="text-xs text-zinc-400">
+        <div className="border-t border-slate-100 bg-slate-50 p-4 text-center">
+          <p className="text-xs font-semibold text-slate-400">
             &copy; {new Date().getFullYear()} JHTM Church. All rights reserved.
           </p>
         </div>

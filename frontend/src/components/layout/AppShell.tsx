@@ -6,7 +6,7 @@ import Sidebar from './Sidebar';
 
 export default function AppShell() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
 
   const sidebarToggleButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -55,6 +55,8 @@ export default function AppShell() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     navigate('/login');
   };
 
@@ -76,6 +78,7 @@ export default function AppShell() {
         collapsed={sidebarCollapsed}
         onToggleCollapsed={() => setCollapsed(!sidebarCollapsed)}
         toggleButtonRef={sidebarToggleButtonRef}
+        onSignOut={handleLogout}
         onNavigate={() => {
           if (typeof window === 'undefined') return;
           if (window.matchMedia('(min-width: 1024px)').matches) return;
@@ -84,7 +87,13 @@ export default function AppShell() {
         }}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col pl-16 lg:pl-0">
+      <div
+        className={
+          sidebarCollapsed
+            ? 'flex min-w-0 flex-1 flex-col pl-16 lg:pl-16'
+            : 'flex min-w-0 flex-1 flex-col pl-16 lg:pl-72'
+        }
+      >
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
           <div className="flex flex-1 items-center gap-4">
             <BackToHomeLink />

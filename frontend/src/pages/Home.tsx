@@ -1,7 +1,10 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { ArrowRight, CalendarDays, Clock, MapPin, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Modal from '@/components/ui/Modal';
+import { useToast } from '@/components/ui/useToast';
 import { formatEventDateLong, formatEventTime } from '@/lib/eventFormat';
+import { createAttendanceId, useAttendanceStore } from '@/stores/attendanceStore';
 import { useEventsStore } from '@/stores/eventsStore';
 
 type SectionKey = 'home' | 'about' | 'ministries' | 'events' | 'contact';
@@ -66,13 +69,18 @@ function useSectionRefs() {
 
 export default function Home() {
   const navigate = useNavigate();
+  const toast = useToast();
   const { refs, scrollTo } = useSectionRefs();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [heroImageError, setHeroImageError] = useState(false);
   const [ministryImageErrors, setMinistryImageErrors] = useState<Record<string, boolean>>({});
+  const [guestModalOpen, setGuestModalOpen] = useState(false);
+  const [guestName, setGuestName] = useState('');
+  const [guestEventId, setGuestEventId] = useState('');
 
   const adminEvents = useEventsStore((s) => s.events);
+  const addAttendance = useAttendanceStore((s) => s.addRecord);
 
   const upcomingEvents: PublicEventItem[] = useMemo(() => {
     const now = new Date();
@@ -111,7 +119,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f4ef] text-slate-900">
+    <div className="min-h-screen bg-cream text-slate-900">
       <div className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <button
@@ -247,9 +255,9 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <img 
-              src={heroImageUrl} 
-              alt="JHTM Church" 
+            <img
+              src={heroImageUrl}
+              alt="JHTM Church"
               className="h-full w-full object-cover"
               onError={() => setHeroImageError(true)}
             />
@@ -284,6 +292,24 @@ export default function Home() {
                 className="rounded-full border border-navy/30 bg-white px-6 py-3 text-sm font-medium text-navy shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-navy-50 focus:outline-none focus:ring-2 focus:ring-navy-400 focus:ring-offset-2"
               >
                 New Here? Get Started
+                <ArrowRight size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextEvent = adminEvents
+                    .filter((e) => e.status !== 'Cancelled')
+                    .sort((a, b) =>
+                      `${a.date}T${a.time || '00:00'}`.localeCompare(
+                        `${b.date}T${b.time || '00:00'}`
+                      )
+                    )[0];
+                  setGuestEventId(nextEvent?.id ?? '');
+                  setGuestModalOpen(true);
+                }}
+                className="rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/15 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-transparent"
+              >
+                Guest Attendance
                 <ArrowRight size={18} />
               </button>
             </div>
@@ -366,6 +392,84 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <Modal
+        open={guestModalOpen}
+        onOpenChange={(open) => {
+          setGuestModalOpen(open);
+          if (!open) {
+            setGuestName('');
+          }
+        }}
+        title="Guest Attendance"
+        description="Check in as a guest for a service."
+        className="max-w-xl"
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">Service / Event</label>
+            <select
+              value={guestEventId}
+              onChange={(e) => setGuestEventId(e.target.value)}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-200 focus:ring-2 focus:ring-sky-600"
+            >
+              {adminEvents
+                .filter((e) => e.status !== 'Cancelled')
+                .sort((a, b) =>
+                  `${a.date}T${a.time || '00:00'}`.localeCompare(`${b.date}T${b.time || '00:00'}`)
+                )
+                .slice(0, 25)
+                .map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name} • {formatEventDateLong(e.date)}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">Your name</label>
+            <input
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sky-200 focus:ring-2 focus:ring-sky-600"
+              placeholder="Full name"
+            />
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setGuestModalOpen(false)}
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!guestEventId || !guestName.trim()}
+              onClick={() => {
+                if (!guestEventId || !guestName.trim()) return;
+                addAttendance({
+                  id: createAttendanceId(),
+                  eventId: guestEventId,
+                  attendeeType: 'guest',
+                  guest: { fullName: guestName.trim() },
+                  status: 'present',
+                  checkinMethod: 'manual',
+                  checkedInAt: new Date().toISOString(),
+                  checkedInBy: 'self',
+                });
+                toast.success('Checked in', 'Thanks for joining us today.');
+                setGuestModalOpen(false);
+              }}
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-navy px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-navy-600 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <section ref={refs.events} className="bg-white/70 py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -489,7 +593,9 @@ export default function Home() {
             >
               <div className="relative h-40 overflow-hidden">
                 {ministryImageErrors[m.id] ? (
-                  <div className={`h-full w-full bg-gradient-to-br ${ministryFallback} flex items-center justify-center`}>
+                  <div
+                    className={`h-full w-full bg-gradient-to-br ${ministryFallback} flex items-center justify-center`}
+                  >
                     <span className="text-2xl font-black text-white/80">{m.name.charAt(0)}</span>
                   </div>
                 ) : (
@@ -497,7 +603,7 @@ export default function Home() {
                     src={m.imageUrl}
                     alt={m.name}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                    onError={() => setMinistryImageErrors(prev => ({ ...prev, [m.id]: true }))}
+                    onError={() => setMinistryImageErrors((prev) => ({ ...prev, [m.id]: true }))}
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-slate-950/15 to-transparent" />

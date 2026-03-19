@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Church, User, Mail, Phone, Calendar, Users, ArrowRight, CheckCircle } from 'lucide-react';
 
 export default function RegisterPage() {
-  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -19,25 +18,25 @@ export default function RegisterPage() {
   });
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleCheckbox = (interest: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       interests: prev.interests.includes(interest)
-        ? prev.interests.filter(i => i !== interest)
-        : [...prev.interests, interest]
+        ? prev.interests.filter((i) => i !== interest)
+        : [...prev.interests, interest],
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
     setIsSubmitting(false);
     setStep(2);
   };
@@ -127,7 +126,9 @@ export default function RegisterPage() {
             1
           </div>
           <div className="h-1 w-16 rounded-full bg-blue-600" />
-          <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${step === 2 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
+          <div
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${step === 2 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'}`}
+          >
             2
           </div>
         </div>
@@ -228,7 +229,9 @@ export default function RegisterPage() {
             </div>
 
             <div className="mt-4 space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Is this your first visit?</label>
+              <label className="text-sm font-semibold text-slate-700">
+                Is this your first visit?
+              </label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2">
                   <input
@@ -259,9 +262,20 @@ export default function RegisterPage() {
           {/* Interests */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-slate-900">Areas of Interest</h2>
-            <p className="mt-1 text-sm text-slate-500">Select areas you'd like to learn more about</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Select areas you'd like to learn more about
+            </p>
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {['Worship Team', 'Youth Ministry', 'Children Ministry', 'Media Team', 'Ushering', 'Small Groups', 'Bible Study', 'Outreach'].map((interest) => (
+              {[
+                'Worship Team',
+                'Youth Ministry',
+                'Children Ministry',
+                'Media Team',
+                'Ushering',
+                'Small Groups',
+                'Bible Study',
+                'Outreach',
+              ].map((interest) => (
                 <label
                   key={interest}
                   className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-semibold transition-colors ${

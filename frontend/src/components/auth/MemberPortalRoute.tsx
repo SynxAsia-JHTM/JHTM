@@ -1,14 +1,10 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import PortalLayout from '@/components/layout/PortalLayout';
 
-type MemberPortalRouteProps = {
-  children: React.ReactNode;
-};
+export default function MemberPortalRoute() {
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
-export default function MemberPortalRoute({ children }: MemberPortalRouteProps) {
-  const token = localStorage.getItem('token');
-  
   // For now, we use the same token as admin
   // In the future, we might have separate member tokens or roles
   if (!token) {
@@ -17,7 +13,7 @@ export default function MemberPortalRoute({ children }: MemberPortalRouteProps) 
 
   return (
     <PortalLayout>
-      {children}
+      <Outlet />
     </PortalLayout>
   );
 }

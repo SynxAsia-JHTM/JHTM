@@ -55,13 +55,11 @@ export default function PortalCheckin() {
   const handleCheckIn = async (serviceId: string) => {
     setIsLoading(serviceId);
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setServices(prev => prev.map(s => 
-      s.id === serviceId 
-        ? { ...s, isCheckedIn: true, canCheckIn: false } 
-        : s
-    ));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    setServices((prev) =>
+      prev.map((s) => (s.id === serviceId ? { ...s, isCheckedIn: true, canCheckIn: false } : s))
+    );
     setIsLoading(null);
   };
 
@@ -85,14 +83,14 @@ export default function PortalCheckin() {
               <p className="text-sm text-slate-500">Tap to check in</p>
             </div>
           </div>
-          
+
           <div className="mt-4 space-y-3">
             {services.map((service) => (
               <div
                 key={service.id}
                 className={`rounded-xl border p-4 ${
-                  service.isCheckedIn 
-                    ? 'border-emerald-200 bg-emerald-50' 
+                  service.isCheckedIn
+                    ? 'border-emerald-200 bg-emerald-50'
                     : 'border-slate-200 bg-slate-50'
                 }`}
               >
@@ -114,7 +112,7 @@ export default function PortalCheckin() {
                       {service.location}
                     </p>
                   </div>
-                  
+
                   {service.isCheckedIn ? (
                     <div className="flex items-center gap-2 text-emerald-600">
                       <CheckCircle size={20} />
@@ -169,7 +167,7 @@ export default function PortalCheckin() {
                 <p className="mt-2 text-sm font-semibold text-slate-600">Tap to show QR Code</p>
               </button>
             )}
-            
+
             {showQR && (
               <button
                 onClick={() => setShowQR(false)}
@@ -182,7 +180,8 @@ export default function PortalCheckin() {
 
           <div className="mt-6 rounded-xl bg-slate-50 p-4">
             <p className="text-sm text-slate-600">
-              <strong>Tip:</strong> Show this QR code to the ushers when you arrive at the service for quick check-in.
+              <strong>Tip:</strong> Show this QR code to the ushers when you arrive at the service
+              for quick check-in.
             </p>
           </div>
         </div>

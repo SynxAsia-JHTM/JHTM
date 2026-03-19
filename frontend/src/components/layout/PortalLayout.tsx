@@ -1,25 +1,24 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { 
-  Church, 
-  LayoutDashboard, 
-  User, 
-  ClipboardCheck, 
-  CalendarClock, 
+import {
+  Church,
+  LayoutDashboard,
+  User,
+  CalendarClock,
   Heart,
-  Calendar, 
-  LogOut, 
-  Menu
+  Calendar,
+  LogOut,
+  Menu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import PortalBottomTabs from '@/components/navigation/PortalBottomTabs';
 
 const portalNavItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/portal' },
-  { label: 'Profile', icon: User, path: '/portal/profile' },
-  { label: 'Check-in', icon: ClipboardCheck, path: '/portal/checkin' },
-  { label: 'My Attendance', icon: CalendarClock, path: '/portal/attendance' },
-  { label: 'Prayer Requests', icon: Heart, path: '/portal/prayers' },
+  { label: 'Home', icon: LayoutDashboard, path: '/portal' },
   { label: 'Events', icon: Calendar, path: '/portal/events' },
+  { label: 'Attendance', icon: CalendarClock, path: '/portal/attendance' },
+  { label: 'Prayer', icon: Heart, path: '/portal/prayers' },
+  { label: 'Profile', icon: User, path: '/portal/profile' },
 ];
 
 type PortalLayoutProps = {
@@ -32,6 +31,9 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     navigate('/login');
   };
 
@@ -45,10 +47,7 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
           </div>
           <span className="font-bold text-slate-900">JHTM Portal</span>
         </div>
-        <button
-          onClick={handleLogout}
-          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
-        >
+        <button onClick={handleLogout} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
           <LogOut size={20} />
         </button>
       </header>
@@ -75,9 +74,10 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
                 onClick={() => setCollapsed(!collapsed)}
                 className={cn(
                   'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2',
-                  collapsed && 'lg:hidden'
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2'
                 )}
+                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-expanded={!collapsed}
               >
                 <Menu size={20} />
               </button>
@@ -147,10 +147,10 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6">
-          {children}
-        </main>
+        <main className="flex-1 p-4 pb-24 lg:p-6 lg:pb-6">{children}</main>
       </div>
+
+      <PortalBottomTabs />
     </div>
   );
 }

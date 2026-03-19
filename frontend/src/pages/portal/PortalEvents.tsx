@@ -77,30 +77,29 @@ export default function PortalEvents() {
 
   const categories = ['All', 'Worship', 'Prayer', 'Youth', 'Family', 'Other'];
 
-  const filteredEvents = filter === 'All' 
-    ? eventList 
-    : eventList.filter(e => e.category === filter);
+  const filteredEvents =
+    filter === 'All' ? eventList : eventList.filter((e) => e.category === filter);
 
   const handleRegister = async (eventId: string) => {
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setEventList(prev => prev.map(e => 
-      e.id === eventId 
-        ? { ...e, isRegistered: true, spotsLeft: e.spotsLeft - 1 } 
-        : e
-    ));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    setEventList((prev) =>
+      prev.map((e) =>
+        e.id === eventId ? { ...e, isRegistered: true, spotsLeft: e.spotsLeft - 1 } : e
+      )
+    );
   };
 
   const handleUnregister = async (eventId: string) => {
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    setEventList(prev => prev.map(e => 
-      e.id === eventId 
-        ? { ...e, isRegistered: false, spotsLeft: e.spotsLeft + 1 } 
-        : e
-    ));
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    setEventList((prev) =>
+      prev.map((e) =>
+        e.id === eventId ? { ...e, isRegistered: false, spotsLeft: e.spotsLeft + 1 } : e
+      )
+    );
   };
 
   const getCategoryColor = (category: string) => {
@@ -146,29 +145,33 @@ export default function PortalEvents() {
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-bold text-slate-900">My Registrations</h2>
         <div className="mt-4 space-y-3">
-          {eventList.filter(e => e.isRegistered).map((event) => (
-            <div
-              key={event.id}
-              className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-emerald-100 p-2">
-                  <CheckCircle className="text-emerald-600" size={20} />
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900">{event.name}</p>
-                  <p className="text-sm text-slate-500">{event.date} • {event.time}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => handleUnregister(event.id)}
-                className="text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+          {eventList
+            .filter((e) => e.isRegistered)
+            .map((event) => (
+              <div
+                key={event.id}
+                className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-4"
               >
-                Cancel
-              </button>
-            </div>
-          ))}
-          {eventList.filter(e => e.isRegistered).length === 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-emerald-100 p-2">
+                    <CheckCircle className="text-emerald-600" size={20} />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">{event.name}</p>
+                    <p className="text-sm text-slate-500">
+                      {event.date} • {event.time}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleUnregister(event.id)}
+                  className="text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            ))}
+          {eventList.filter((e) => e.isRegistered).length === 0 && (
             <p className="text-slate-500">You haven't registered for any events yet.</p>
           )}
         </div>
@@ -184,7 +187,9 @@ export default function PortalEvents() {
               className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
             >
               <div className="flex items-start justify-between">
-                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${getCategoryColor(event.category)}`}>
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${getCategoryColor(event.category)}`}
+                >
                   {event.category}
                 </span>
                 {event.isRegistered && (
@@ -217,7 +222,7 @@ export default function PortalEvents() {
                   <Users size={16} />
                   <span>{event.spotsLeft} spots left</span>
                 </div>
-                
+
                 {event.isRegistered ? (
                   <button
                     onClick={() => handleUnregister(event.id)}

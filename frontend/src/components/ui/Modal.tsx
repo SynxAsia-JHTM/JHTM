@@ -30,6 +30,16 @@ export default function Modal({
   const descriptionId = useId();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const onOpenChangeRef = useRef(onOpenChange);
+  const initialFocusRefRef = useRef(initialFocusRef);
+
+  useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  }, [onOpenChange]);
+
+  useEffect(() => {
+    initialFocusRefRef.current = initialFocusRef;
+  }, [initialFocusRef]);
 
   const portalTarget = useMemo(() => {
     if (typeof document === 'undefined') return null;
@@ -43,7 +53,7 @@ export default function Modal({
     document.body.style.overflow = 'hidden';
 
     const focusTimer = window.setTimeout(() => {
-      const initial = initialFocusRef?.current;
+      const initial = initialFocusRefRef.current?.current;
       if (initial) {
         initial.focus();
         return;
@@ -57,7 +67,7 @@ export default function Modal({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onOpenChange(false);
+        onOpenChangeRef.current(false);
         return;
       }
 
@@ -95,7 +105,7 @@ export default function Modal({
       document.removeEventListener('keydown', onKeyDown);
       previouslyFocusedRef.current?.focus();
     };
-  }, [open, onOpenChange, initialFocusRef]);
+  }, [open]);
 
   if (!open || !portalTarget) return null;
 
@@ -108,7 +118,7 @@ export default function Modal({
         type="button"
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
         aria-label="Close dialog"
-        onClick={() => onOpenChange(false)}
+        onClick={() => onOpenChangeRef.current(false)}
       />
       <div
         ref={panelRef}
@@ -134,7 +144,7 @@ export default function Modal({
           </div>
           <button
             type="button"
-            onClick={() => onOpenChange(false)}
+            onClick={() => onOpenChangeRef.current(false)}
             className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
             aria-label="Close dialog"
           >

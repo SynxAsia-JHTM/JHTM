@@ -13,7 +13,8 @@ type PrayerRequest = {
 const initialPrayers: PrayerRequest[] = [
   {
     id: '1',
-    request: 'Please pray for my job interview next week. I have been seeking a new opportunity for months.',
+    request:
+      'Please pray for my job interview next week. I have been seeking a new opportunity for months.',
     date: 'March 18, 2026',
     status: 'Pending',
     isAnonymous: false,
@@ -21,7 +22,8 @@ const initialPrayers: PrayerRequest[] = [
   },
   {
     id: '2',
-    request: 'Pray for my family during this difficult time. My parents are going through health challenges.',
+    request:
+      'Pray for my family during this difficult time. My parents are going through health challenges.',
     date: 'March 10, 2026',
     status: 'In Progress',
     isAnonymous: false,
@@ -40,7 +42,7 @@ const initialPrayers: PrayerRequest[] = [
 export default function PortalPrayers() {
   const [prayers, setPrayers] = useState<PrayerRequest[]>(initialPrayers);
   const [showForm, setShowForm] = useState(false);
-   const [newRequest, setNewRequest] = useState('');
+  const [newRequest, setNewRequest] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -50,12 +52,16 @@ export default function PortalPrayers() {
 
     setIsSubmitting(true);
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const prayer: PrayerRequest = {
       id: Date.now().toString(),
       request: newRequest,
-      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      date: new Date().toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      }),
       status: 'Pending',
       isAnonymous,
       prayers: 0,
@@ -69,9 +75,7 @@ export default function PortalPrayers() {
   };
 
   const handlePray = (id: string) => {
-    setPrayers(prev => prev.map(p => 
-      p.id === id ? { ...p, prayers: p.prayers + 1 } : p
-    ));
+    setPrayers((prev) => prev.map((p) => (p.id === id ? { ...p, prayers: p.prayers + 1 } : p)));
   };
 
   const getStatusColor = (status: string) => {
@@ -135,7 +139,7 @@ export default function PortalPrayers() {
                   required
                 />
               </div>
-              
+
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -177,13 +181,13 @@ export default function PortalPrayers() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-slate-500">Pending</p>
           <p className="mt-1 text-2xl font-bold text-amber-600">
-            {prayers.filter(p => p.status === 'Pending').length}
+            {prayers.filter((p) => p.status === 'Pending').length}
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-slate-500">Answered</p>
           <p className="mt-1 text-2xl font-bold text-emerald-600">
-            {prayers.filter(p => p.status === 'Answered').length}
+            {prayers.filter((p) => p.status === 'Answered').length}
           </p>
         </div>
       </div>
@@ -206,9 +210,7 @@ export default function PortalPrayers() {
                     {getStatusIcon(prayer.status)}
                     {prayer.status}
                   </span>
-                  {prayer.isAnonymous && (
-                    <span className="text-xs text-slate-400">Anonymous</span>
-                  )}
+                  {prayer.isAnonymous && <span className="text-xs text-slate-400">Anonymous</span>}
                 </div>
                 <p className="mt-3 text-slate-900">{prayer.request}</p>
                 <p className="mt-3 text-sm text-slate-500">{prayer.date}</p>

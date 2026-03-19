@@ -18,7 +18,7 @@ const ministries = [
 export default function PortalProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Mock member data - in real app, this would come from API
   const [formData, setFormData] = useState({
     name: 'John Smith',
@@ -33,13 +33,13 @@ export default function PortalProfile() {
   const handleSave = async () => {
     setIsSaving(true);
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     setIsSaving(false);
     setIsEditing(false);
   };
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -165,10 +165,10 @@ export default function PortalProfile() {
                 />
               ) : (
                 <p className="rounded-xl bg-slate-50 px-4 py-3 text-slate-900">
-                  {new Date(formData.birthdate).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  {new Date(formData.birthdate).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
                   })}
                 </p>
               )}
@@ -205,11 +205,15 @@ export default function PortalProfile() {
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
                 >
                   {ministries.map((m) => (
-                    <option key={m} value={m}>{m}</option>
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
                   ))}
                 </select>
               ) : (
-                <p className="rounded-xl bg-slate-50 px-4 py-3 text-slate-900">{formData.ministry}</p>
+                <p className="rounded-xl bg-slate-50 px-4 py-3 text-slate-900">
+                  {formData.ministry}
+                </p>
               )}
             </div>
           </div>

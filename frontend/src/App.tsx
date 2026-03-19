@@ -6,11 +6,16 @@ import AppShell from './components/layout/AppShell';
 import Home from './pages/Home';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ResetPassword from './pages/ResetPassword';
+import Onboarding from './pages/Onboarding';
 import DashboardHome from './pages/DashboardHome';
 import Members from './pages/Members';
 import Events from './pages/Events';
 import Attendance from './pages/Attendance';
 import About from './pages/About';
+import QrCheckin from './pages/QrCheckin';
+import PrayerRequestsAdmin from './pages/PrayerRequestsAdmin';
+import Settings from './pages/Settings';
 
 // Member Portal Pages
 import PortalDashboard from './pages/portal/PortalDashboard';
@@ -28,6 +33,9 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/checkin/:token" element={<QrCheckin />} />
 
         {/* Admin Dashboard Routes (existing) */}
         <Route
@@ -41,17 +49,13 @@ export default function App() {
           <Route path="/members" element={<Members />} />
           <Route path="/events" element={<Events />} />
           <Route path="/attendance" element={<Attendance />} />
+          <Route path="/prayer-requests" element={<PrayerRequestsAdmin />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/about" element={<About />} />
         </Route>
 
         {/* Member Portal Routes (new) */}
-        <Route
-          element={
-            <MemberPortalRoute>
-              <React.Fragment />
-            </MemberPortalRoute>
-          }
-        >
+        <Route element={<MemberPortalRoute></MemberPortalRoute>}>
           <Route path="/portal" element={<PortalDashboard />} />
           <Route path="/portal/profile" element={<PortalProfile />} />
           <Route path="/portal/checkin" element={<PortalCheckin />} />

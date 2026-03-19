@@ -10,31 +10,87 @@ type AttendanceRecord = {
 };
 
 const attendanceHistory: AttendanceRecord[] = [
-  { id: '1', serviceName: 'Sunday Worship', date: 'March 16, 2026', time: '9:15 AM', status: 'Present' },
-  { id: '2', serviceName: 'Prayer Meeting', date: 'March 11, 2026', time: '7:05 PM', status: 'Present' },
-  { id: '3', serviceName: 'Sunday Worship', date: 'March 9, 2026', time: '9:22 AM', status: 'Late' },
-  { id: '4', serviceName: 'Youth Service', date: 'March 6, 2026', time: '5:00 PM', status: 'Present' },
-  { id: '5', serviceName: 'Sunday Worship', date: 'March 2, 2026', time: '9:00 AM', status: 'Present' },
-  { id: '6', serviceName: 'Prayer Meeting', date: 'Feb 25, 2026', time: '7:00 PM', status: 'Present' },
-  { id: '7', serviceName: 'Sunday Worship', date: 'Feb 23, 2026', time: '9:10 AM', status: 'Present' },
+  {
+    id: '1',
+    serviceName: 'Sunday Worship',
+    date: 'March 16, 2026',
+    time: '9:15 AM',
+    status: 'Present',
+  },
+  {
+    id: '2',
+    serviceName: 'Prayer Meeting',
+    date: 'March 11, 2026',
+    time: '7:05 PM',
+    status: 'Present',
+  },
+  {
+    id: '3',
+    serviceName: 'Sunday Worship',
+    date: 'March 9, 2026',
+    time: '9:22 AM',
+    status: 'Late',
+  },
+  {
+    id: '4',
+    serviceName: 'Youth Service',
+    date: 'March 6, 2026',
+    time: '5:00 PM',
+    status: 'Present',
+  },
+  {
+    id: '5',
+    serviceName: 'Sunday Worship',
+    date: 'March 2, 2026',
+    time: '9:00 AM',
+    status: 'Present',
+  },
+  {
+    id: '6',
+    serviceName: 'Prayer Meeting',
+    date: 'Feb 25, 2026',
+    time: '7:00 PM',
+    status: 'Present',
+  },
+  {
+    id: '7',
+    serviceName: 'Sunday Worship',
+    date: 'Feb 23, 2026',
+    time: '9:10 AM',
+    status: 'Present',
+  },
   { id: '8', serviceName: 'Youth Service', date: 'Feb 20, 2026', time: '5:15 PM', status: 'Late' },
-  { id: '9', serviceName: 'Sunday Worship', date: 'Feb 16, 2026', time: '9:00 AM', status: 'Absent' },
-  { id: '10', serviceName: 'Prayer Meeting', date: 'Feb 11, 2026', time: '7:00 PM', status: 'Present' },
+  {
+    id: '9',
+    serviceName: 'Sunday Worship',
+    date: 'Feb 16, 2026',
+    time: '9:00 AM',
+    status: 'Absent',
+  },
+  {
+    id: '10',
+    serviceName: 'Prayer Meeting',
+    date: 'Feb 11, 2026',
+    time: '7:00 PM',
+    status: 'Present',
+  },
 ];
 
 export default function PortalAttendance() {
   const [filter, setFilter] = useState<'All' | 'Present' | 'Late' | 'Absent'>('All');
 
-  const filteredRecords = filter === 'All' 
-    ? attendanceHistory 
-    : attendanceHistory.filter(r => r.status === filter);
+  const filteredRecords =
+    filter === 'All' ? attendanceHistory : attendanceHistory.filter((r) => r.status === filter);
 
   const stats = {
     total: attendanceHistory.length,
-    present: attendanceHistory.filter(r => r.status === 'Present').length,
-    late: attendanceHistory.filter(r => r.status === 'Late').length,
-    absent: attendanceHistory.filter(r => r.status === 'Absent').length,
-    rate: Math.round((attendanceHistory.filter(r => r.status !== 'Absent').length / attendanceHistory.length) * 100),
+    present: attendanceHistory.filter((r) => r.status === 'Present').length,
+    late: attendanceHistory.filter((r) => r.status === 'Late').length,
+    absent: attendanceHistory.filter((r) => r.status === 'Absent').length,
+    rate: Math.round(
+      (attendanceHistory.filter((r) => r.status !== 'Absent').length / attendanceHistory.length) *
+        100
+    ),
   };
 
   const getStatusColor = (status: string) => {
@@ -157,7 +213,9 @@ export default function PortalAttendance() {
               {filteredRecords.map((record) => (
                 <tr key={record.id} className="transition-colors hover:bg-slate-50/60">
                   <td className="px-6 py-4">
-                    <span className="text-sm font-semibold text-slate-900">{record.serviceName}</span>
+                    <span className="text-sm font-semibold text-slate-900">
+                      {record.serviceName}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm text-slate-600">{record.date}</span>
