@@ -186,7 +186,7 @@ export default function Attendance() {
                 className="jhtm-btn jhtm-btn-primary h-11"
               >
                 <QrCode size={18} aria-hidden="true" />
-                QR Check-in
+                Attend via QR
               </button>
             </div>
           </div>
@@ -774,8 +774,8 @@ function QrModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="QR Check-in"
-      description="Share this link or open it on a device to check in."
+      title="Attend via QR"
+      description="Share this link or open it on a device to mark attendance."
       className="max-w-xl"
     >
       <div className="space-y-4">
@@ -785,7 +785,7 @@ function QrModal({
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-sm font-semibold text-slate-700">Check-in URL</p>
+          <p className="text-sm font-semibold text-slate-700">Attendance Link</p>
           <p className="mt-2 break-all rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-900">
             {qrUrl ?? ''}
           </p>
