@@ -3,12 +3,11 @@ import { ClipboardCheck, QrCode, CheckCircle, Clock, MapPin, Calendar } from 'lu
 
 import { cn } from '@/lib/utils';
 import { type AttendanceRecord, useAttendanceStore } from '@/stores/attendanceStore';
+import { type EventItem, useEventsStore } from '@/stores/eventsStore';
 
 type Service = {
-  id: string;
-  name: string;
+  event: EventItem;
   startAt: string;
-  location: string;
 };
 
 function getCurrentMemberId(): string {
@@ -23,10 +22,6 @@ function getCurrentMemberId(): string {
   }
 }
 
-function serviceEventId(service: Service) {
-  return `service:${service.id}:${service.startAt}`;
-}
-
 function toLocalDateLabel(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
@@ -37,36 +32,42 @@ function toLocalTimeLabel(iso: string) {
   return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-function createStartAt(daysFromNow: number, hours: number, minutes: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + daysFromNow);
-  d.setHours(hours, minutes, 0, 0);
+function eventStartAtIso(event: EventItem) {
+  const time = event.time?.length ? event.time : '00:00';
+  const iso = `${event.date}T${time}`;
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return null;
   return d.toISOString();
 }
 
-const upcomingServices: Service[] = [
-  {
-    id: 'sunday-worship',
-    name: 'Sunday Worship',
-    startAt: createStartAt(1, 9, 0),
-    location: 'Main Sanctuary',
-  },
-  {
-    id: 'prayer-meeting',
-    name: 'Prayer Meeting',
-    startAt: createStartAt(3, 19, 0),
-    location: 'Fellowship Hall',
-  },
-  {
-    id: 'youth-service',
-    name: 'Youth Service',
-    startAt: createStartAt(5, 17, 0),
-    location: 'Youth Center',
-  },
-].sort((a, b) => a.startAt.localeCompare(b.startAt));
+function isServiceLike(event: EventItem) {
+  const cat = (event.category ?? '').toLowerCase();
+  const name = (event.name ?? '').toLowerCase();
+  return (
+    cat === 'service' ||
+    cat === 'prayer' ||
+    cat === 'worship' ||
+    cat === 'youth' ||
+    name.includes('service') ||
+    name.includes('worship') ||
+    name.includes('prayer')
+  );
+}
 
 export default function PortalCheckin() {
-  const [services] = useState(upcomingServices);
+  const events = useEventsStore((s) => s.events);
+  const services = useMemo<Service[]>(() => {
+    const nowIso = new Date().toISOString();
+    return [...events]
+      .filter((e) => e.status !== 'Cancelled' && e.status !== 'Completed')
+      .filter((e) => isServiceLike(e))
+      .map((e) => ({ event: e, startAt: eventStartAtIso(e) }))
+      .filter((s): s is { event: EventItem; startAt: string } => Boolean(s.startAt))
+      .filter((s) => s.startAt >= nowIso)
+      .sort((a, b) => a.startAt.localeCompare(b.startAt))
+      .slice(0, 8);
+  }, [events]);
+
   const [showQR, setShowQR] = useState(false);
 
   const memberId = getCurrentMemberId();
@@ -77,34 +78,45 @@ export default function PortalCheckin() {
     return records
       .filter((r) => r.attendeeType === 'member')
       .filter((r) => (r.memberId ?? '') === memberId)
-      .filter((r) => r.eventId.startsWith('service:'))
       .filter((r) => r.status !== 'removed')
       .sort((a, b) => b.checkedInAt.localeCompare(a.checkedInAt));
   }, [memberId, records]);
 
   const recordForService = (service: Service) => {
-    const eid = serviceEventId(service);
-    return memberServiceRecords.find((r) => r.eventId === eid) ?? null;
+    return memberServiceRecords.find((r) => r.eventId === service.event.id) ?? null;
   };
 
-  const markJoined = (service: Service) => {
+  const markExpected = (service: Service) => {
+    const existing = recordForService(service);
+    if (existing && (existing.status === 'present' || existing.status === 'late')) return;
+    upsertRecord({
+      id: `self:${memberId}:${service.event.id}`,
+      eventId: service.event.id,
+      attendeeType: 'member',
+      memberId,
+      status: 'expected',
+      checkinMethod: 'manual',
+      checkedInAt: new Date().toISOString(),
+      checkedInBy: 'self',
+      notes: service.event.name,
+    });
+  };
+
+  const markHere = (service: Service) => {
     const now = new Date();
     const start = new Date(service.startAt);
     const isLate = now.getTime() > start.getTime() + 10 * 60_000;
     const status: AttendanceRecord['status'] = isLate ? 'late' : 'present';
-    const eventId = serviceEventId(service);
-    const id = `self:${memberId}:${eventId}`;
-
     upsertRecord({
-      id,
-      eventId,
+      id: `self:${memberId}:${service.event.id}`,
+      eventId: service.event.id,
       attendeeType: 'member',
       memberId,
       status,
       checkinMethod: 'manual',
       checkedInAt: now.toISOString(),
       checkedInBy: 'self',
-      notes: service.name,
+      notes: service.event.name,
     });
   };
 
@@ -138,14 +150,14 @@ export default function PortalCheckin() {
                 const showEarly = new Date() < new Date(service.startAt);
                 return (
                   <div
-                    key={service.id}
+                    key={service.event.id}
                     className={`rounded-xl border p-4 ${
                       joined ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-slate-900">{service.name}</p>
+                        <p className="font-semibold text-slate-900">{service.event.name}</p>
                         <div className="mt-1 flex items-center gap-3 text-sm text-slate-500">
                           <span className="flex items-center gap-1">
                             <Calendar size={14} />
@@ -158,7 +170,7 @@ export default function PortalCheckin() {
                         </div>
                         <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
                           <MapPin size={14} />
-                          {service.location}
+                          {service.event.location}
                         </p>
                       </div>
 
@@ -172,7 +184,7 @@ export default function PortalCheckin() {
                           {showEarly ? (
                             <button
                               type="button"
-                              onClick={() => markJoined(service)}
+                              onClick={() => markExpected(service)}
                               className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                             >
                               I'll Attend
@@ -180,7 +192,7 @@ export default function PortalCheckin() {
                           ) : null}
                           <button
                             type="button"
-                            onClick={() => markJoined(service)}
+                            onClick={() => markHere(service)}
                             className={cn(
                               'rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600'
                             )}

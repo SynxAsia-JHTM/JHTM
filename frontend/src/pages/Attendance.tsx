@@ -1,11 +1,11 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, CheckCircle2, QrCode, Search, UserPlus2, Users2, X } from 'lucide-react';
 
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/useToast';
 import { cn } from '@/lib/utils';
 import { loadMembers } from '@/lib/memberData';
-import { formatDashboardDateTime, formatEventDateShort } from '@/lib/eventFormat';
+import { formatEventDateShort } from '@/lib/eventFormat';
 import {
   createAttendanceId,
   createTokenId,
@@ -35,9 +35,25 @@ function getAttendeeName(record: AttendanceRecord, membersById: Map<string, { na
 
 function statusPill(status: AttendanceStatus) {
   if (status === 'present') return 'bg-emerald-100 text-emerald-700';
+  if (status === 'expected') return 'bg-slate-200 text-slate-700';
   if (status === 'late') return 'bg-amber-100 text-amber-800';
   if (status === 'excused') return 'bg-slate-200 text-slate-700';
   return 'bg-red-100 text-red-700';
+}
+
+function statusLabel(record: AttendanceRecord) {
+  if (record.attendeeType === 'guest') return 'Guest';
+  if (record.status === 'present') return "I'm Here 🙏";
+  if (record.status === 'expected') return 'Expected / Early';
+  if (record.status === 'late') return 'Late';
+  return 'Excused / Absent';
+}
+
+function isServiceLikeEvent(eventName: string) {
+  const n = eventName.toLowerCase();
+  return (
+    n.includes('service') || n.includes('worship') || n.includes('prayer') || n.includes('youth')
+  );
 }
 
 export default function Attendance() {
@@ -47,6 +63,7 @@ export default function Attendance() {
   const createToken = useAttendanceStore((s) => s.createToken);
   const removeRecord = useAttendanceStore((s) => s.removeRecord);
   const upsertRecord = useAttendanceStore((s) => s.upsertRecord);
+  const updateRecord = useAttendanceStore((s) => s.updateRecord);
 
   const members = useMemo(() => loadMembers(), []);
   const membersById = useMemo(
@@ -63,12 +80,14 @@ export default function Attendance() {
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [checkinTab, setCheckinTab] = useState<'member' | 'guest'>('member');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const [activeQrUrl, setActiveQrUrl] = useState<string | null>(null);
 
   const eventOptions = useMemo(() => {
     return [...events]
       .filter((e) => e.status !== 'Cancelled')
+      .filter((e) => isServiceLikeEvent(e.name))
       .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));
   }, [events]);
 
@@ -92,10 +111,14 @@ export default function Attendance() {
   }, [events, filters.date, filters.eventId, filters.memberQuery, membersById, records]);
 
   const summary = useMemo(() => {
-    const present = filteredRecords.filter((r) => r.status === 'present').length;
+    const attended = filteredRecords.filter(
+      (r) => r.status === 'present' || r.status === 'late'
+    ).length;
     const late = filteredRecords.filter((r) => r.status === 'late').length;
+    const expected = filteredRecords.filter((r) => r.status === 'expected').length;
     const guests = filteredRecords.filter((r) => r.attendeeType === 'guest').length;
-    return { present, late, guests, total: filteredRecords.length };
+    const noShows = expected;
+    return { attended, late, expected, guests, noShows, total: filteredRecords.length };
   }, [filteredRecords]);
 
   const selectedEvent = useMemo(() => {
@@ -145,7 +168,7 @@ export default function Attendance() {
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
               >
                 <UserPlus2 size={18} aria-hidden="true" />
-                Check-in
+                Add / Edit
               </button>
               <button
                 type="button"
@@ -159,14 +182,18 @@ export default function Attendance() {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
           <div className="jhtm-card p-4">
-            <p className="text-sm font-semibold text-slate-600">Present</p>
-            <p className="mt-1 text-2xl font-extrabold text-navy">{summary.present}</p>
+            <p className="text-sm font-semibold text-slate-600">Total attended</p>
+            <p className="mt-1 text-2xl font-extrabold text-navy">{summary.attended}</p>
           </div>
           <div className="jhtm-card p-4">
-            <p className="text-sm font-semibold text-slate-600">Guests</p>
+            <p className="text-sm font-semibold text-slate-600">Guest count</p>
             <p className="mt-1 text-2xl font-extrabold text-sea-700">{summary.guests}</p>
+          </div>
+          <div className="jhtm-card p-4">
+            <p className="text-sm font-semibold text-slate-600">No-shows</p>
+            <p className="mt-1 text-2xl font-extrabold text-slate-700">{summary.noShows}</p>
           </div>
           <div className="jhtm-card p-4">
             <p className="text-sm font-semibold text-slate-600">Late</p>
@@ -202,9 +229,9 @@ export default function Attendance() {
                 value={filters.eventId}
                 onChange={(e) => setFilters((p) => ({ ...p, eventId: e.target.value }))}
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500 sm:w-auto"
-                aria-label="Filter by event"
+                aria-label="Filter by service"
               >
-                <option value="">All events</option>
+                <option value="">All services</option>
                 {eventOptions.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.name} ({formatEventDateShort(e.date)})
@@ -246,22 +273,16 @@ export default function Attendance() {
             <thead>
               <tr className="bg-slate-50/60">
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Attendee
+                  Member Name
                 </th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Type
+                  Attendance Status
                 </th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Event
+                  Check-in Method
                 </th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
-                  When
-                </th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Method
-                </th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Status
+                  Notes
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500">
                   Actions
@@ -271,7 +292,7 @@ export default function Attendance() {
             <tbody className="divide-y divide-slate-100">
               {filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-sm text-slate-500">
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-slate-500">
                     No attendance records found.
                   </td>
                 </tr>
@@ -291,31 +312,36 @@ export default function Attendance() {
                         ) : null}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm text-slate-700">{r.attendeeType}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-slate-700">{event?.name ?? 'Event'}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-slate-700">
-                          {event ? formatDashboardDateTime(event.date, event.time) : r.checkedInAt}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-slate-700">{r.checkinMethod}</span>
-                      </td>
-                      <td className="px-6 py-4">
                         <span
                           className={cn(
                             'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                            statusPill(r.status)
+                            r.attendeeType === 'guest'
+                              ? 'bg-slate-200 text-slate-700'
+                              : statusPill(r.status)
                           )}
                         >
-                          {r.status}
+                          {statusLabel(r)}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex justify-end">
+                        <span className="text-sm font-semibold text-slate-700">
+                          {r.checkinMethod}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-slate-700">
+                          {r.notes || event?.name || '—'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditId(r.id)}
+                            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2"
+                          >
+                            Edit
+                          </button>
                           <button
                             type="button"
                             onClick={() => setDeleteId(r.id)}
@@ -374,7 +400,128 @@ export default function Attendance() {
           toast.success('Record removed');
         }}
       />
+
+      <EditAttendanceModal
+        open={Boolean(editId)}
+        onOpenChange={(open) => {
+          if (!open) setEditId(null);
+        }}
+        record={editId ? (records.find((r) => r.id === editId) ?? null) : null}
+        onSave={(updates) => {
+          if (!editId) return;
+          updateRecord(editId, updates);
+          toast.success('Updated', 'Attendance record updated.');
+          setEditId(null);
+        }}
+      />
     </div>
+  );
+}
+
+function EditAttendanceModal({
+  open,
+  onOpenChange,
+  record,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  record: AttendanceRecord | null;
+  onSave: (updates: Partial<AttendanceRecord>) => void;
+}) {
+  const [status, setStatus] = useState<AttendanceStatus>('present');
+  const [notes, setNotes] = useState('');
+  const [method, setMethod] = useState<'manual' | 'qr'>('manual');
+
+  useEffect(() => {
+    if (!record) return;
+    setStatus(record.status);
+    setNotes(record.notes ?? '');
+    setMethod(record.checkinMethod);
+  }, [record]);
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Edit attendance"
+      description="Update status, method, and notes"
+      className="max-w-xl"
+    >
+      {!record ? (
+        <div className="text-sm text-slate-500">No record selected.</div>
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">{record.attendeeType}</p>
+            <p className="mt-1 text-sm text-slate-600">
+              {record.memberId || record.guest?.fullName}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700">Status</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as AttendanceStatus)}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
+              >
+                <option value="expected">Expected / Early</option>
+                <option value="present">Present</option>
+                <option value="late">Late</option>
+                <option value="excused">Excused</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700">Method</label>
+              <select
+                value={method}
+                onChange={(e) => setMethod(e.target.value as 'manual' | 'qr')}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
+              >
+                <option value="manual">manual</option>
+                <option value="qr">qr</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">Notes</label>
+            <input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
+              placeholder="Optional notes"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="jhtm-btn jhtm-btn-ghost"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onSave({
+                  status,
+                  checkinMethod: method,
+                  notes: notes.trim() || undefined,
+                })
+              }
+              className="jhtm-btn jhtm-btn-primary"
+            >
+              Save changes
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }
 
@@ -402,6 +549,7 @@ function CheckinModal({
   const [memberName, setMemberName] = useState('');
   const [guest, setGuest] = useState<GuestProfile>({ fullName: '' });
   const [status, setStatus] = useState<AttendanceStatus>('present');
+  const [notes, setNotes] = useState('');
 
   const memberOptions = useMemo(() => members.map((m) => ({ id: m.id, name: m.name })), [members]);
   const memberByName = useMemo(() => {
@@ -420,6 +568,7 @@ function CheckinModal({
     setMemberName('');
     setGuest({ fullName: '' });
     setStatus('present');
+    setNotes('');
     setTab('member');
   };
 
@@ -460,11 +609,22 @@ function CheckinModal({
               className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
               required
             >
+              <option value="expected">Expected / Early</option>
               <option value="present">Present</option>
               <option value="late">Late</option>
               <option value="excused">Excused</option>
             </select>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-slate-700">Notes (optional)</label>
+          <input
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g., Came early / usher note"
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
+          />
         </div>
 
         <div className="flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
@@ -564,6 +724,7 @@ function CheckinModal({
                 checkinMethod: 'manual',
                 checkedInAt: new Date().toISOString(),
                 checkedInBy: 'admin',
+                notes: notes.trim() || undefined,
               };
 
               if (tab === 'member') {
@@ -580,7 +741,7 @@ function CheckinModal({
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sea-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-emerald-600/60"
           >
             <CheckCircle2 size={18} aria-hidden="true" />
-            Check in
+            Save
           </button>
         </div>
       </div>

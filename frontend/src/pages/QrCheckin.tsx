@@ -134,6 +134,7 @@ export default function QrCheckin() {
                 onChange={(e) => setStatus(e.target.value as AttendanceStatus)}
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sea-200 focus:ring-2 focus:ring-sea-500"
               >
+                <option value="expected">Expected / Early</option>
                 <option value="present">Present</option>
                 <option value="late">Late</option>
                 <option value="excused">Excused</option>

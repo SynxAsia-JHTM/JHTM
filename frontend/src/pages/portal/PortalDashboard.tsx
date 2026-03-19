@@ -5,13 +5,7 @@ import { CalendarClock, ClipboardCheck, Heart, Calendar, User } from 'lucide-rea
 import { usePrayerRequestsStore } from '@/stores/prayerRequestsStore';
 import { cn } from '@/lib/utils';
 import { type AttendanceRecord, useAttendanceStore } from '@/stores/attendanceStore';
-
-type PortalService = {
-  id: string;
-  name: string;
-  startAt: string;
-  location?: string;
-};
+import { type EventItem, useEventsStore } from '@/stores/eventsStore';
 
 function getCurrentMemberId(): string {
   if (typeof window === 'undefined') return 'member';
@@ -25,10 +19,6 @@ function getCurrentMemberId(): string {
   }
 }
 
-function serviceEventId(service: PortalService) {
-  return `service:${service.id}:${service.startAt}`;
-}
-
 function toLocalDateLabel(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
@@ -39,11 +29,26 @@ function toLocalTimeLabel(iso: string) {
   return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-function createStartAt(daysFromNow: number, hours: number, minutes: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + daysFromNow);
-  d.setHours(hours, minutes, 0, 0);
+function eventStartAtIso(event: EventItem) {
+  const time = event.time?.length ? event.time : '00:00';
+  const iso = `${event.date}T${time}`;
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return null;
   return d.toISOString();
+}
+
+function isServiceLike(event: EventItem) {
+  const cat = (event.category ?? '').toLowerCase();
+  const name = (event.name ?? '').toLowerCase();
+  return (
+    cat === 'service' ||
+    cat === 'prayer' ||
+    cat === 'worship' ||
+    cat === 'youth' ||
+    name.includes('service') ||
+    name.includes('worship') ||
+    name.includes('prayer')
+  );
 }
 
 function statusPill(status: AttendanceRecord['status']) {
@@ -61,6 +66,8 @@ export default function PortalDashboard() {
   const records = useAttendanceStore((s) => s.records);
   const upsertRecord = useAttendanceStore((s) => s.upsertRecord);
 
+  const events = useEventsStore((s) => s.events);
+
   useEffect(() => {
     void loadMyPrayerRequests();
   }, [loadMyPrayerRequests]);
@@ -68,32 +75,32 @@ export default function PortalDashboard() {
   const memberName = 'John Smith';
   const memberId = getCurrentMemberId();
 
-  const upcomingServices = useMemo<PortalService[]>(
-    () =>
-      [
-        {
-          id: 'sunday-worship',
-          name: 'Sunday Worship',
-          startAt: createStartAt(1, 9, 0),
-          location: 'Main Sanctuary',
-        },
-        {
-          id: 'prayer-meeting',
-          name: 'Prayer Meeting',
-          startAt: createStartAt(3, 19, 0),
-          location: 'Fellowship Hall',
-        },
-      ].sort((a, b) => a.startAt.localeCompare(b.startAt)),
-    []
-  );
+  const upcomingServices = useMemo(() => {
+    const nowIso = new Date().toISOString();
+    return [...events]
+      .filter((e) => e.status !== 'Cancelled' && e.status !== 'Completed')
+      .filter((e) => isServiceLike(e))
+      .map((e) => ({
+        event: e,
+        startAt: eventStartAtIso(e),
+      }))
+      .filter((e): e is { event: EventItem; startAt: string } => Boolean(e.startAt))
+      .filter((e) => e.startAt >= nowIso)
+      .sort((a, b) => a.startAt.localeCompare(b.startAt))
+      .slice(0, 3);
+  }, [events]);
+
+  const serviceEventIds = useMemo(() => {
+    return new Set(events.filter((e) => isServiceLike(e)).map((e) => e.id));
+  }, [events]);
 
   const memberServiceRecords = useMemo(() => {
     return records
       .filter((r) => r.attendeeType === 'member')
       .filter((r) => (r.memberId ?? '') === memberId)
-      .filter((r) => r.eventId.startsWith('service:'))
+      .filter((r) => serviceEventIds.has(r.eventId))
       .filter((r) => r.status !== 'removed');
-  }, [memberId, records]);
+  }, [memberId, records, serviceEventIds]);
 
   const servicesAttended = useMemo(() => {
     return memberServiceRecords.filter((r) => r.status === 'present' || r.status === 'late').length;
@@ -103,35 +110,49 @@ export default function PortalDashboard() {
     const now = new Date();
     const m = now.getMonth();
     const y = now.getFullYear();
-    return memberServiceRecords.filter((r) => {
-      const d = new Date(r.checkedInAt);
-      return d.getFullYear() === y && d.getMonth() === m;
-    }).length;
+    return memberServiceRecords
+      .filter((r) => r.status === 'present' || r.status === 'late')
+      .filter((r) => {
+        const d = new Date(r.checkedInAt);
+        return d.getFullYear() === y && d.getMonth() === m;
+      }).length;
   }, [memberServiceRecords]);
 
-  const recordForService = (service: PortalService) => {
-    const eid = serviceEventId(service);
-    return memberServiceRecords.find((r) => r.eventId === eid) ?? null;
+  const recordForEvent = (eventId: string) => {
+    return memberServiceRecords.find((r) => r.eventId === eventId) ?? null;
   };
 
-  const markJoined = (service: PortalService) => {
+  const markExpected = (event: EventItem) => {
+    const existing = recordForEvent(event.id);
+    if (existing && (existing.status === 'present' || existing.status === 'late')) return;
+    upsertRecord({
+      id: `self:${memberId}:${event.id}`,
+      eventId: event.id,
+      attendeeType: 'member',
+      memberId,
+      status: 'expected',
+      checkinMethod: 'manual',
+      checkedInAt: new Date().toISOString(),
+      checkedInBy: 'self',
+      notes: event.name,
+    });
+  };
+
+  const markHere = (event: EventItem, startAt: string) => {
     const now = new Date();
-    const start = new Date(service.startAt);
+    const start = new Date(startAt);
     const isLate = now.getTime() > start.getTime() + 10 * 60_000;
     const status: AttendanceRecord['status'] = isLate ? 'late' : 'present';
-    const eventId = serviceEventId(service);
-    const id = `self:${memberId}:${eventId}`;
-
     upsertRecord({
-      id,
-      eventId,
+      id: `self:${memberId}:${event.id}`,
+      eventId: event.id,
       attendeeType: 'member',
       memberId,
       status,
       checkinMethod: 'manual',
       checkedInAt: now.toISOString(),
       checkedInBy: 'self',
-      notes: service.name,
+      notes: event.name,
     });
   };
 
@@ -173,15 +194,15 @@ export default function PortalDashboard() {
         <p className="mt-1 text-white/80">We're glad to have you as part of JHTM Church.</p>
         <div className="mt-4 flex gap-3">
           {(() => {
-            const nextService = upcomingServices[0];
-            const joined = nextService ? recordForService(nextService) : null;
+            const nextService = upcomingServices[0] ?? null;
+            const joined = nextService ? recordForEvent(nextService.event.id) : null;
             const showEarly = nextService ? new Date() < new Date(nextService.startAt) : false;
             return (
               <>
                 {showEarly ? (
                   <button
                     type="button"
-                    onClick={() => nextService && markJoined(nextService)}
+                    onClick={() => nextService && markExpected(nextService.event)}
                     disabled={Boolean(joined)}
                     className={cn(
                       'inline-flex items-center gap-2 rounded-xl border border-white/40 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 disabled:opacity-60',
@@ -195,7 +216,7 @@ export default function PortalDashboard() {
 
                 <button
                   type="button"
-                  onClick={() => nextService && markJoined(nextService)}
+                  onClick={() => nextService && markHere(nextService.event, nextService.startAt)}
                   disabled={Boolean(joined)}
                   className={cn(
                     'inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-navy hover:bg-sky-50 disabled:opacity-60',
@@ -264,7 +285,7 @@ export default function PortalDashboard() {
           <button
             onClick={() => {
               const nextService = upcomingServices[0];
-              if (nextService) markJoined(nextService);
+              if (nextService) markHere(nextService.event, nextService.startAt);
             }}
             className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 transition-colors hover:bg-slate-50"
           >
@@ -360,20 +381,22 @@ export default function PortalDashboard() {
         </div>
         <div className="mt-4 space-y-3">
           {upcomingServices.map((service) => {
-            const joined = recordForService(service);
+            const joined = recordForEvent(service.event.id);
             const showEarly = new Date() < new Date(service.startAt);
             return (
               <div
-                key={service.id}
+                key={service.event.id}
                 className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4"
               >
                 <div>
-                  <p className="font-semibold text-slate-900">{service.name}</p>
+                  <p className="font-semibold text-slate-900">{service.event.name}</p>
                   <p className="text-sm text-slate-500">
                     {toLocalDateLabel(service.startAt)} at {toLocalTimeLabel(service.startAt)}
                   </p>
-                  {service.location ? (
-                    <p className="mt-1 text-xs font-semibold text-slate-500">{service.location}</p>
+                  {service.event.location ? (
+                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                      {service.event.location}
+                    </p>
                   ) : null}
                 </div>
 
@@ -396,7 +419,7 @@ export default function PortalDashboard() {
                   {showEarly ? (
                     <button
                       type="button"
-                      onClick={() => markJoined(service)}
+                      onClick={() => markExpected(service.event)}
                       disabled={Boolean(joined)}
                       className={cn(
                         'rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60',
@@ -409,7 +432,7 @@ export default function PortalDashboard() {
 
                   <button
                     type="button"
-                    onClick={() => markJoined(service)}
+                    onClick={() => markHere(service.event, service.startAt)}
                     disabled={Boolean(joined)}
                     className={cn(
                       'rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-600 disabled:opacity-60',

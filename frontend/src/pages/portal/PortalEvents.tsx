@@ -117,8 +117,7 @@ export default function PortalEvents() {
   }, [activeEventId, upcoming]);
 
   const attendanceEventId = (event: EventItem) => {
-    const startAt = eventStartAt(event);
-    return `service:event:${event.id}:${startAt}`;
+    return event.id;
   };
 
   const attendanceForEvent = (event: EventItem) => {

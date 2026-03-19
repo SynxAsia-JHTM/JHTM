@@ -3,6 +3,7 @@ import { CalendarClock, TrendingUp, Filter, Download } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { type AttendanceRecord, useAttendanceStore } from '@/stores/attendanceStore';
+import { type EventItem, useEventsStore } from '@/stores/eventsStore';
 
 type FilterValue = 'All' | 'Present' | 'Late' | 'Excused / Absent';
 
@@ -30,14 +31,30 @@ function toLocalTimeLabel(iso: string) {
 
 function toUiStatus(status: AttendanceRecord['status']): FilterValue {
   if (status === 'present') return 'Present';
+  if (status === 'expected') return 'Excused / Absent';
   if (status === 'late') return 'Late';
   return 'Excused / Absent';
 }
 
 function getStatusColor(status: AttendanceRecord['status']) {
   if (status === 'present') return 'bg-emerald-100 text-emerald-700';
+  if (status === 'expected') return 'bg-slate-200 text-slate-700';
   if (status === 'late') return 'bg-amber-100 text-amber-800';
   return 'bg-slate-200 text-slate-700';
+}
+
+function isServiceLike(event: EventItem) {
+  const cat = (event.category ?? '').toLowerCase();
+  const name = (event.name ?? '').toLowerCase();
+  return (
+    cat === 'service' ||
+    cat === 'prayer' ||
+    cat === 'worship' ||
+    cat === 'youth' ||
+    name.includes('service') ||
+    name.includes('worship') ||
+    name.includes('prayer')
+  );
 }
 
 export default function PortalAttendance() {
@@ -45,15 +62,24 @@ export default function PortalAttendance() {
 
   const memberId = getCurrentMemberId();
   const records = useAttendanceStore((s) => s.records);
+  const events = useEventsStore((s) => s.events);
+
+  const serviceEventIds = useMemo(() => {
+    return new Set(events.filter((e) => isServiceLike(e)).map((e) => e.id));
+  }, [events]);
+
+  const eventNameById = useMemo(() => {
+    return new Map(events.map((e) => [e.id, e.name]));
+  }, [events]);
 
   const memberServiceRecords = useMemo(() => {
     return records
       .filter((r) => r.attendeeType === 'member')
       .filter((r) => (r.memberId ?? '') === memberId)
-      .filter((r) => r.eventId.startsWith('service:'))
+      .filter((r) => serviceEventIds.has(r.eventId))
       .filter((r) => r.status !== 'removed')
       .sort((a, b) => b.checkedInAt.localeCompare(a.checkedInAt));
-  }, [memberId, records]);
+  }, [memberId, records, serviceEventIds]);
 
   const filteredRecords = useMemo(() => {
     if (filter === 'All') return memberServiceRecords;
@@ -64,7 +90,9 @@ export default function PortalAttendance() {
     const total = memberServiceRecords.length;
     const present = memberServiceRecords.filter((r) => r.status === 'present').length;
     const late = memberServiceRecords.filter((r) => r.status === 'late').length;
-    const excusedAbsent = memberServiceRecords.filter((r) => r.status === 'excused').length;
+    const excusedAbsent = memberServiceRecords.filter(
+      (r) => r.status === 'excused' || r.status === 'expected'
+    ).length;
     const attended = memberServiceRecords.filter(
       (r) => r.status === 'present' || r.status === 'late'
     ).length;
@@ -179,7 +207,7 @@ export default function PortalAttendance() {
                 <tr key={record.id} className="transition-colors hover:bg-slate-50/60">
                   <td className="px-6 py-4">
                     <span className="text-sm font-semibold text-slate-900">
-                      {record.notes || 'Service'}
+                      {eventNameById.get(record.eventId) || record.notes || 'Service'}
                     </span>
                   </td>
                   <td className="px-6 py-4">

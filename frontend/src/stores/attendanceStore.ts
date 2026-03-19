@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type AttendanceStatus = 'present' | 'late' | 'excused' | 'removed';
+export type AttendanceStatus = 'present' | 'expected' | 'late' | 'excused' | 'removed';
 export type CheckinMethod = 'manual' | 'qr';
 
 export type GuestProfile = {
