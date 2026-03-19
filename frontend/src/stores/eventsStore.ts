@@ -11,6 +11,8 @@ export type EventItem = {
   status: EventStatus;
   category?: string;
   speaker?: string;
+  requiresRegistration?: boolean;
+  maxSlots?: number;
 };
 
 type EventsState = {
