@@ -7,6 +7,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/ui/ToastProvider';
 import Events from '@/pages/Events';
 import Home from '@/pages/Home';
+import DashboardHome from '@/pages/DashboardHome';
 import { useEventsStore, type EventItem } from '@/stores/eventsStore';
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -52,6 +53,15 @@ describe('Events module', () => {
     });
 
     expect(await screen.findAllByText('New Event From Admin')).toHaveLength(1);
+  });
+
+  it('keeps dashboard Upcoming Events synchronized with store updates', async () => {
+    render(<DashboardHome />, { wrapper });
+    expect(screen.getAllByText('Seed Event').length).toBeGreaterThan(0);
+
+    useEventsStore.getState().updateEvent('seed-1', { location: 'Conference Room', time: '11:15' });
+
+    expect(await screen.findByText('Conference Room')).toBeInTheDocument();
   });
 
   it('supports add, edit, delete flows with inline validation', async () => {

@@ -28,7 +28,7 @@ const LoginPage: React.FC = () => {
       return;
     }
 
-    const timeoutMs = 8000;
+    const timeoutMs = 1500;
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
@@ -69,14 +69,12 @@ const LoginPage: React.FC = () => {
         data?.detail ||
         (typeof data === 'string' ? data : null) ||
         `Login failed (HTTP ${response.status}).`;
-      console.error('Login failed', { url, status: response.status, data });
       setError(message);
     } catch (err) {
       const errorObj = err as { name?: string; message?: string };
       if (errorObj?.name === 'AbortError') {
         signInOffline();
       } else {
-        console.error('Login request network error', err);
         signInOffline();
       }
     } finally {

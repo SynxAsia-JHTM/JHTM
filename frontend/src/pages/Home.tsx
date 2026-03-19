@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { ArrowRight, CalendarDays, Clock, MapPin, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { formatEventDateLong, formatEventTime } from '@/lib/eventFormat';
 import { useEventsStore } from '@/stores/eventsStore';
 
 type SectionKey = 'home' | 'about' | 'ministries' | 'events' | 'contact';
@@ -71,21 +72,6 @@ export default function Home() {
   const upcomingEvents: PublicEventItem[] = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const formatDate = (iso: string) => {
-      const parsed = new Date(`${iso}T00:00:00`);
-      return new Intl.DateTimeFormat(undefined, {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }).format(parsed);
-    };
-    const formatTime = (hhmm: string) => {
-      const [h, m] = hhmm.split(':');
-      const d = new Date();
-      d.setHours(Number(h), Number(m || 0), 0, 0);
-      return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(d);
-    };
 
     return adminEvents
       .filter((e) => e.status !== 'Cancelled')
@@ -101,8 +87,8 @@ export default function Home() {
       .map((e) => ({
         id: e.id,
         name: e.name,
-        date: formatDate(e.date),
-        time: formatTime(e.time),
+        date: formatEventDateLong(e.date),
+        time: formatEventTime(e.time),
         location: e.location,
       }));
   }, [adminEvents]);

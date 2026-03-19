@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Calendar, Church, Users } from 'lucide-react';
 
-const stats = [
+import { formatDashboardDateTime } from '@/lib/eventFormat';
+import { useEventsStore } from '@/stores/eventsStore';
+
+const statsBase = [
   { label: 'Total Members', value: '1,248', icon: Users, color: 'text-blue-700', bg: 'bg-blue-50' },
   {
     label: 'Active Ministries',
@@ -9,13 +12,6 @@ const stats = [
     icon: Church,
     color: 'text-emerald-700',
     bg: 'bg-emerald-50',
-  },
-  {
-    label: 'Upcoming Events',
-    value: '5',
-    icon: Calendar,
-    color: 'text-violet-700',
-    bg: 'bg-violet-50',
   },
 ];
 
@@ -27,24 +23,47 @@ const recentMembers = [
   { id: 5, name: 'David Johnson', ministry: 'Ushering', status: 'Active' },
 ];
 
-const upcomingEvents = [
-  {
-    id: 1,
-    name: 'Sunday Worship Service',
-    date: 'Mar 22, 2026 • 10:00 AM',
-    location: 'Main Sanctuary',
-  },
-  { id: 2, name: 'Mid-week Prayer Meeting', date: 'Mar 25, 2026 • 7:30 PM', location: 'Chapel' },
-  {
-    id: 3,
-    name: 'Youth Outreach Night',
-    date: 'Mar 27, 2026 • 6:00 PM',
-    location: 'Community Hall',
-  },
-];
-
 export default function DashboardHome() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const events = useEventsStore((s) => s.events);
+
+  const upcomingEvents = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    return events
+      .filter((e) => e.status !== 'Cancelled')
+      .filter((e) => {
+        const eventDay = new Date(`${e.date}T00:00:00`);
+        return eventDay.getTime() >= startOfToday.getTime();
+      })
+      .sort((a, b) => {
+        const aKey = `${a.date}T${a.time || '00:00'}:00`;
+        const bKey = `${b.date}T${b.time || '00:00'}:00`;
+        return Date.parse(aKey) - Date.parse(bKey);
+      })
+      .slice(0, 10)
+      .map((e) => ({
+        id: e.id,
+        name: e.name,
+        date: formatDashboardDateTime(e.date, e.time),
+        location: e.location,
+      }));
+  }, [events]);
+
+  const stats = useMemo(
+    () => [
+      ...statsBase,
+      {
+        label: 'Upcoming Events',
+        value: String(upcomingEvents.length),
+        icon: Calendar,
+        color: 'text-violet-700',
+        bg: 'bg-violet-50',
+      },
+    ],
+    [upcomingEvents.length]
+  );
 
   return (
     <div className="space-y-8">
@@ -123,13 +142,22 @@ export default function DashboardHome() {
             <h2 className="text-lg font-bold text-slate-900">Upcoming Events</h2>
           </div>
           <div className="space-y-5 p-6">
-            {upcomingEvents.map((e) => (
-              <div key={e.id} className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
-                <p className="text-sm font-bold text-slate-900">{e.name}</p>
-                <p className="mt-1 text-xs font-semibold text-slate-500">{e.date}</p>
-                <p className="mt-2 text-xs text-slate-600">{e.location}</p>
+            {upcomingEvents.length === 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+                <p className="text-sm font-bold text-slate-900">No upcoming events</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">
+                  Create an event to see it here.
+                </p>
               </div>
-            ))}
+            ) : (
+              upcomingEvents.map((e) => (
+                <div key={e.id} className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+                  <p className="text-sm font-bold text-slate-900">{e.name}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">{e.date}</p>
+                  <p className="mt-2 text-xs text-slate-600">{e.location}</p>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

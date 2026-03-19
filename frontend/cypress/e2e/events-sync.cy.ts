@@ -14,4 +14,31 @@ describe('Events sync', () => {
     cy.get('a[aria-label="Back to homepage"]').click();
     cy.contains('Cypress Event', { timeout: 2000 }).should('be.visible');
   });
+
+  it('updates dashboard Upcoming Events after admin edit within 500ms', () => {
+    cy.visit('/login');
+    cy.contains('button', 'Sign in').click();
+
+    cy.get('a[aria-label="Events"]').click();
+
+    cy.contains('tr', 'Mid-week Prayer Meeting').within(() => {
+      cy.get('button[aria-label^="Edit"]').click();
+    });
+
+    cy.contains('[role="dialog"]', 'Edit Event').within(() => {
+      cy.get('input[type="date"]').clear().type('2026-03-28');
+      cy.get('input[type="time"]').clear().type('20:00');
+      cy.get('input[placeholder="Select venue"]').clear().type('Church');
+      cy.contains('button', 'Save').click();
+    });
+
+    cy.get('a[aria-label="Dashboard"]').click();
+    cy.contains('Upcoming Events').should('be.visible');
+    cy.contains('Mid-week Prayer Meeting').should('be.visible');
+    cy.contains('Mid-week Prayer Meeting')
+      .parent()
+      .within(() => {
+        cy.contains('Church', { timeout: 500 }).should('be.visible');
+      });
+  });
 });
