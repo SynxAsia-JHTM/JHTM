@@ -150,9 +150,9 @@ export default function Home() {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="rounded-full bg-navy px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              Admin Login
+              Login
             </button>
           </div>
 
@@ -160,9 +160,9 @@ export default function Home() {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-900"
+              className="rounded-full bg-navy px-3 py-2 text-xs font-bold text-white"
             >
-              Admin
+              Login
             </button>
             <button
               type="button"
@@ -261,10 +261,11 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/login')}
-                className="inline-flex items-center justify-center rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-extrabold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15"
+                onClick={() => navigate('/register')}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-sea px-6 py-3 text-sm font-extrabold text-white shadow-lg shadow-sea/30 transition hover:-translate-y-0.5 hover:bg-sea-600"
               >
-                Admin Login
+                New Here? Get Started
+                <ArrowRight size={18} />
               </button>
             </div>
 
