@@ -23,6 +23,9 @@ type MinistryItem = {
 const heroImageUrl =
   'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=modern%20church%20interior%2C%20warm%20natural%20light%20through%20large%20windows%2C%20soft%20blue%20and%20beige%20color%20tones%2C%20peaceful%20welcoming%20atmosphere%2C%20high%20ceiling%2C%20wood%20details%2C%20photorealistic%2C%20wide%20angle%2C%20cinematic%20composition%2C%20clean%20modern%20architecture%2C%20no%20text%2C%20no%20logos%2C%20high%20detail%2C%20natural%20colors&image_size=landscape_16_9';
 
+// Fallback gradient for when images fail to load
+const ministryFallback = 'from-navy-500 via-navy-600 to-navy-700';
+
 const ministryImages: Record<string, string> = {
   youth:
     'https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=church%20youth%20ministry%20group%20activity%2C%20diverse%20teenagers%20smiling%2C%20warm%20indoor%20lighting%2C%20soft%20blue%20and%20green%20tones%2C%20friendly%20community%20moment%2C%20photorealistic%2C%20no%20text%2C%20no%20logos%2C%20shallow%20depth%20of%20field%2C%20high%20detail&image_size=portrait_4_3',
@@ -66,6 +69,8 @@ export default function Home() {
   const { refs, scrollTo } = useSectionRefs();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const [heroImageError, setHeroImageError] = useState(false);
+  const [ministryImageErrors, setMinistryImageErrors] = useState<Record<string, boolean>>({});
 
   const adminEvents = useEventsStore((s) => s.events);
 
@@ -160,7 +165,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="rounded-full bg-navy px-3 py-2 text-xs font-bold text-white"
+              className="rounded-full bg-navy px-3 py-2 text-sm font-bold text-white shadow-sm"
             >
               Login
             </button>
@@ -234,7 +239,21 @@ export default function Home() {
       <div ref={refs.home} />
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img src={heroImageUrl} alt="JHTM Church" className="h-full w-full object-cover" />
+          {heroImageError ? (
+            <div className="h-full w-full bg-gradient-to-br from-navy-600 to-navy-800 flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-2xl font-black text-white">JHTM Church</p>
+                <p className="text-sm font-medium text-white/70">Welcome Home</p>
+              </div>
+            </div>
+          ) : (
+            <img 
+              src={heroImageUrl} 
+              alt="JHTM Church" 
+              className="h-full w-full object-cover"
+              onError={() => setHeroImageError(true)}
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950/65 via-slate-900/45 to-slate-900/25" />
         </div>
 
@@ -254,7 +273,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => scrollTo('contact')}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-500/20 transition hover:-translate-y-0.5 hover:bg-emerald-600"
+                className="rounded-full bg-navy px-6 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:bg-navy-600 focus:outline-none focus:ring-2 focus:ring-navy-400 focus:ring-offset-2"
               >
                 Join Us for Worship
                 <ArrowRight size={18} />
@@ -262,7 +281,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => navigate('/register')}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-sea px-6 py-3 text-sm font-extrabold text-white shadow-lg shadow-sea/30 transition hover:-translate-y-0.5 hover:bg-sea-600"
+                className="rounded-full border border-navy/30 bg-white px-6 py-3 text-sm font-medium text-navy shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-navy-50 focus:outline-none focus:ring-2 focus:ring-navy-400 focus:ring-offset-2"
               >
                 New Here? Get Started
                 <ArrowRight size={18} />
@@ -469,11 +488,18 @@ export default function Home() {
               className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
             >
               <div className="relative h-40 overflow-hidden">
-                <img
-                  src={m.imageUrl}
-                  alt={m.name}
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                />
+                {ministryImageErrors[m.id] ? (
+                  <div className={`h-full w-full bg-gradient-to-br ${ministryFallback} flex items-center justify-center`}>
+                    <span className="text-2xl font-black text-white/80">{m.name.charAt(0)}</span>
+                  </div>
+                ) : (
+                  <img
+                    src={m.imageUrl}
+                    alt={m.name}
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    onError={() => setMinistryImageErrors(prev => ({ ...prev, [m.id]: true }))}
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-slate-950/15 to-transparent" />
               </div>
               <div className="p-5">

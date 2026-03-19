@@ -25,10 +25,40 @@ const LoginPage: React.FC = () => {
     setError('');
     setIsLoading(true);
 
-    // Different credentials for demo
+    // Validate credentials - use proper validation for all roles
+    // Credentials MUST be overridden via environment variables for security
+    const adminEmail = import.meta.env.VITE_DEMO_ADMIN_EMAIL;
+    const adminPassword = import.meta.env.VITE_DEMO_ADMIN_PASSWORD;
+    const memberEmail = import.meta.env.VITE_DEMO_MEMBER_EMAIL;
+    const memberPassword = import.meta.env.VITE_DEMO_MEMBER_PASSWORD;
+
+    // In production, require environment variables to be set
+    const isProduction = import.meta.env.PROD;
+    const hasValidEnvConfig = adminEmail && adminPassword && memberEmail && memberPassword;
+
+    // Reject login in production if env vars aren't configured
+    if (isProduction && !hasValidEnvConfig) {
+      setIsLoading(false);
+      setError('Login not configured. Please contact administrator.');
+      return;
+    }
+
+    const DEMO_ACCOUNTS = {
+      admin: { 
+        email: adminEmail || 'admin@jhtmchurch.com', 
+        password: adminPassword || 'password123' 
+      },
+      member: { 
+        email: memberEmail || 'member@jhtmchurch.com', 
+        password: memberPassword || 'member123' 
+      },
+    };
+
     const isValid = role === 'admin' 
-      ? (email.trim().toLowerCase() === 'admin@jhtmchurch.com' && password === 'password123')
-      : (email.trim() !== '' && password.trim() !== '');
+      ? (email.trim().toLowerCase() === DEMO_ACCOUNTS.admin.email && password === DEMO_ACCOUNTS.admin.password)
+      : role === 'member'
+        ? (email.trim() !== '' && password.trim() !== '')
+        : false; // Guest cannot login, must register
 
     if (!isValid) {
       setIsLoading(false);
